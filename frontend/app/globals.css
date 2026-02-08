@@ -1,8 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
@@ -60,12 +58,7 @@
     --chart-5: 340 75% 55%;
   }
 
-  * {
-    @apply border-border;
-  }
-
   body {
-    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', sans-serif;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
   }
@@ -82,20 +75,19 @@
   }
 }
 
-@layer components {
+@layer utilities {
 
   /* Glass card effect */
   .glass-card {
-    @apply bg-white/80 backdrop-blur-lg border border-white/20 shadow-lg rounded-lg dark:bg-gray-900/80;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 0.5rem;
   }
 
-  /* Animation utilities */
-  .slide-in {
-    @apply animate-slideIn;
-  }
-
-  .fade-in {
-    @apply animate-fadeIn;
+  .dark .glass-card {
+    background: rgba(17, 24, 39, 0.8);
   }
 
   /* Enhanced shadows for depth */
@@ -113,11 +105,21 @@
 
   /* Card hover effect */
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-medium hover:-translate-y-0.5;
+    transition: all 0.2s ease-in-out;
   }
-}
 
-@layer utilities {
+  .card-hover:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+  }
+
+  /* Text gradient utility */
+  .text-gradient {
+    background: linear-gradient(to right, hsl(var(--primary)), rgb(37, 99, 235));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 
   /* Enhanced mobile touch targets */
   @media (max-width: 640px) {
@@ -162,10 +164,5 @@
   /* Smooth scrolling */
   .smooth-scroll {
     scroll-behavior: smooth;
-  }
-
-  /* Text gradient utility */
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent;
   }
 }
