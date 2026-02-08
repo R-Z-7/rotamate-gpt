@@ -1,49 +1,28 @@
 import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
-const cardVariants = cva(
-    "rounded-lg border bg-white text-slate-950 shadow-sm transition-all duration-200 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50",
-    {
-        variants: {
-            variant: {
-                default: "border-slate-200",
-                glass: "glass border-white/20",
-                elevated: "hover:shadow-lg hover:-translate-y-1",
-            },
-        },
-        defaultVariants: {
-            variant: "default",
-        },
-    }
-)
-
-export interface CardProps
-    extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof cardVariants> { }
-
-const Card = React.forwardRef<HTMLDivElement, CardProps>(
-    ({ className, variant, ...props }, ref) => (
-        <div
-            ref={ref}
-            className={cn(cardVariants({ variant, className }))}
-            {...props}
-        />
-    )
-)
+const Card = React.forwardRef<
+    HTMLDivElement,
+    React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+    <div
+        ref={ref}
+        className={cn(
+            "rounded-lg border bg-card text-card-foreground shadow-soft",
+            className
+        )}
+        {...props}
+    />
+))
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef<
     HTMLDivElement,
-    React.HTMLAttributes<HTMLDivElement> & { gradient?: boolean }
->(({ className, gradient, ...props }, ref) => (
+    React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
     <div
         ref={ref}
-        className={cn(
-            "flex flex-col space-y-1.5 p-6",
-            gradient && "gradient-primary text-white rounded-t-lg",
-            className
-        )}
+        className={cn("flex flex-col space-y-1.5 p-6", className)}
         {...props}
     />
 ))
@@ -70,7 +49,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <p
         ref={ref}
-        className={cn("text-sm text-slate-500 dark:text-slate-400", className)}
+        className={cn("text-sm text-muted-foreground", className)}
         {...props}
     />
 ))
@@ -96,4 +75,4 @@ const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, cardVariants }
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }

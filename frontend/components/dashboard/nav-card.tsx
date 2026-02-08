@@ -51,7 +51,7 @@ export function NavCard({
 
     if (href) {
         return (
-            <Card className={cn("transition-all hover:shadow-md hover:border-primary/50 group cursor-pointer", className)}>
+            <Card className={cn("shadow-soft transition-all duration-200 hover:shadow-medium hover:border-primary/50 hover:-translate-y-0.5 group cursor-pointer", className)}>
                 <Link href={href} className="block h-full">
                     {content}
                 </Link>

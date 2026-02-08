@@ -37,7 +37,7 @@ export function StatCard({
             className={className}
         >
             <Card className={cn(
-                "border shadow-sm",
+                "border shadow-soft card-hover",
                 gradient && "bg-primary text-primary-foreground border-primary"
             )}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
