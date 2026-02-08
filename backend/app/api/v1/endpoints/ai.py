@@ -16,29 +16,50 @@ class RotaRequest(BaseModel):
 class RotaResponse(BaseModel):
     generated_rota: str # Returns markdown or JSON string of the rota
 
-@router.post("/generate", response_model=RotaResponse)
+from datetime import datetime, timedelta
+from app.core.config import settings
+
+@router.post("/generate", response_model=List[Any]) # Changed return type to list for now
 def generate_rota(
     *,
     db: Session = Depends(deps.get_db),
     rota_request: RotaRequest,
     current_user: User = Depends(deps.get_current_active_admin),
 ) -> Any:
-    # 1. Fetch availability for the given date range and employees
-    # availabilities = db.query(Availability)...
+    # Parse dates
+    try:
+        start_date = datetime.fromisoformat(rota_request.start_date.replace("Z", "+00:00"))
+        end_date = datetime.fromisoformat(rota_request.end_date.replace("Z", "+00:00"))
+    except ValueError:
+        pass
+
+    # Fetch Data
+    employees = db.query(User).filter(User.id.in_(rota_request.employee_ids)).all()
+    if not employees:
+        raise HTTPException(status_code=400, detail="No employees found")
+        
+    # Validation: Ensure all employees belong to the same company as requestor
+    if current_user.role != "superadmin":
+        for emp in employees:
+            if emp.company_id != current_user.company_id:
+                raise HTTPException(status_code=400, detail="Cannot generate rota for employees of another company")
+
+    # availabilities = db.query(Availability)... # For now pass empty or impl fetch logic
+    availabilities = []
+    # time_off = ...
+    time_off = []
     
-    # 2. Fetch existing shifts to avoid clashes (optional)
+    if not settings.OPENAI_API_KEY:
+        # Fallback to stub if key not present
+        return [
+            {"employee_id": employees[0].id, "start_time": start_date.isoformat(), "end_time": (start_date + timedelta(hours=8)).isoformat(), "role_type": "Manager"},
+            {"employee_id": employees[1].id if len(employees)>1 else employees[0].id, "start_time": start_date.isoformat(), "end_time": (start_date + timedelta(hours=8)).isoformat(), "role_type": "Bar"},
+        ]
+
+    # Generate
+    from app.services.ai_service import ai_service
+    generated_shifts = ai_service.generate_rota(
+        start_date, end_date, employees, availabilities, time_off
+    )
     
-    # 3. Construct prompt for OpenAI via LangChain
-    # prompt = f"Create a fair weekly rota for {rota_request.employee_ids}..."
-    
-    # 4. Call OpenAI (Stub for now)
-    # response = llm.predict(prompt)
-    
-    # Stub response
-    stub_rota = """
-    Monday: User 1 (Morning), User 2 (Afternoon)
-    Tuesday: User 3 (Morning), User 1 (Afternoon)
-    ...
-    """
-    
-    return {"generated_rota": stub_rota}
+    return generated_shifts

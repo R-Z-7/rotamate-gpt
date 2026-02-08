@@ -19,9 +19,13 @@ RotaMate is a modern SaaS web application for workforce scheduling.
    source venv/bin/activate
    pip install -r requirements.txt
    ```
-   *(Note: ensure dependencies are installed via pip install command provided in setup)*
+3. Set up environment:
+   ```bash
+   cp .env.example .env
+   # Edit .env if needed
+   ```
 
-3. Initialize Database with Demo Data:
+4. Initialize Database with Demo Data:
    ```bash
    python -m app.db.init_db
    ```
@@ -40,7 +44,11 @@ RotaMate is a modern SaaS web application for workforce scheduling.
    ```bash
    npm install
    ```
-3. Run Development Server:
+3. Set up environment:
+   ```bash
+   cp .env.example .env.local
+   ```
+4. Run Development Server:
    ```bash
    npm run dev
    ```

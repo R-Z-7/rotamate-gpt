@@ -15,8 +15,14 @@ def read_time_off_requests(
     limit: int = 100,
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
-    if current_user.role == "admin":
+    # Tenant Isolation
+    if current_user.role == "superadmin":
         return db.query(TimeOffRequest).offset(skip).limit(limit).all()
+    
+    if current_user.role == "admin":
+        if current_user.company_id:
+            return db.query(TimeOffRequest).filter(TimeOffRequest.company_id == current_user.company_id).offset(skip).limit(limit).all()
+            
     return db.query(TimeOffRequest).filter(TimeOffRequest.employee_id == current_user.id).offset(skip).limit(limit).all()
 
 @router.post("/", response_model=TimeOffRequestSchema)
@@ -28,6 +34,7 @@ def create_time_off_request(
 ) -> Any:
     request = TimeOffRequest(
         employee_id=current_user.id,
+        company_id=current_user.company_id,
         start_date=request_in.start_date,
         end_date=request_in.end_date,
         reason=request_in.reason,
@@ -50,6 +57,11 @@ def update_time_off_status(
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
     
+    # Tenant Check
+    if current_user.role != "superadmin":
+        if request.company_id != current_user.company_id:
+             raise HTTPException(status_code=404, detail="Request not found")
+
     request.status = status_update.status
     db.add(request)
     db.commit()
