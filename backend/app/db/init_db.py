@@ -32,8 +32,12 @@ def init_db(db: Session) -> None:
             # SuperAdmin might not need a company, or could belong to a system company
         )
         db.add(super_admin)
-        db.flush()
         print("Super Admin created")
+    else:
+        super_admin.hashed_password = get_password_hash("superadmin123")
+        db.add(super_admin)
+        print("Super Admin password updated")
+    db.flush()
 
     # 3. Create Admin User (Linked to Demo Company)
     admin = db.query(User).filter(User.email == "admin@rotamate.com").first()
@@ -47,14 +51,13 @@ def init_db(db: Session) -> None:
             company_id=company.id
         )
         db.add(admin)
-        db.flush() 
         print("Admin user created")
     else:
-        # Update existing admin to link to company if not already
-        if not admin.company_id:
-            admin.company_id = company.id
-            db.add(admin)
-            print("Admin user linked to company")
+        admin.hashed_password = get_password_hash("admin123")
+        admin.company_id = company.id
+        db.add(admin)
+        print("Admin user updated/linked")
+    db.flush()
 
     # 4. Create Employee Users (Linked to Demo Company)
     employee_data = [
