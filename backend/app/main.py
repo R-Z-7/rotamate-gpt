@@ -73,8 +73,18 @@ def root():
 
 @app.get("/healthz")
 @app.get("/health")
-def health_check():
-    return {"status": "ok"}
+def health_check(db: Session = Depends(deps.get_db)):
+    try:
+        # Try to execute a simple query to verify DB connection
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={"status": "error", "database": str(e)}
+        )
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
