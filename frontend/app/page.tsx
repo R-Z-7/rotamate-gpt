@@ -55,7 +55,7 @@ export default function Home() {
             <Button variant="ghost">Login</Button>
           </Link>
           <Link href="/register">
-            <Button variant="primary">Get Started</Button>
+            <Button variant="default">Get Started</Button>
           </Link>
         </nav>
       </header>
@@ -83,7 +83,7 @@ export default function Home() {
               </p>
               <div className="mt-10 flex items-center justify-center gap-4">
                 <Link href="/register">
-                  <Button variant="primary" size="lg" className="px-8">
+                  <Button variant="default" size="lg" className="px-8">
                     Start for Free
                   </Button>
                 </Link>
@@ -124,7 +124,7 @@ export default function Home() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <Card variant="elevated" className="h-full">
+                  <Card className="h-full">
                     <CardHeader>
                       <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center mb-4">
                         <feature.icon className="h-6 w-6 text-white" />

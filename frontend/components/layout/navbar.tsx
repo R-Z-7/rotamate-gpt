@@ -43,7 +43,7 @@ export function Navbar() {
 
                 <div className="flex flex-col">
                     <h2 className="text-sm sm:text-lg font-semibold text-foreground truncate hidden sm:block">
-                        Welcome back, {user?.name?.split(' ')[0]}!
+                        Welcome back, {user?.full_name?.split(' ')[0]}!
                     </h2>
                 </div>
             </div>

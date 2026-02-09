@@ -79,7 +79,7 @@ export default function RequestsPage() {
                                     <TableCell>
                                         <Badge variant={
                                             request.status === "Approved" ? "success" :
-                                                request.status === "Declined" ? "destructive" : "secondary"
+                                                request.status === "Declined" ? "danger" : "secondary"
                                         }>
                                             {request.status}
                                         </Badge>
