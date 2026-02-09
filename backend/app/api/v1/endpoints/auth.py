@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import Any
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -9,6 +10,8 @@ from app.core import security
 from app.core.config import settings
 from app.schemas.user import Token, UserCreate, User as UserSchema
 from app.crud import get_user_by_email, create_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
