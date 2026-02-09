@@ -22,7 +22,7 @@ try:
 except Exception as e:
     logger.error(f"Error creating database tables: {e}")
 
-# Set all CORS enabled origins
+# Set CORS enabled origins
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -32,8 +32,8 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"], # For production debugging, let's use * then tighten it
+    allow_credentials=False, # Credentials can't be * with allow_origins=*
     allow_methods=["*"],
     allow_headers=["*"],
 )

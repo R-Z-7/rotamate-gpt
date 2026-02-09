@@ -31,8 +31,15 @@ export default function LoginPage() {
 
             // Basic role check/redirect usually happens here or in context
             // For now context redirects to /dashboard
-        } catch (err) {
-            setError("Invalid credentials")
+        } catch (err: any) {
+            console.error("Login Error:", err);
+            if (err.response) {
+                setError(err.response.data.detail || "Invalid credentials");
+            } else if (err.request) {
+                setError("No response from server. Check your internet or if backend is down.");
+            } else {
+                setError("Error: " + err.message);
+            }
         }
     }
 
