@@ -81,6 +81,14 @@ def init_db(db: Session) -> None:
             db.add(emp)
             db.flush()
             print(f"User {data['name']} created")
+        else:
+            emp.hashed_password = get_password_hash(data["pass"])
+            # Ensure company link if missing
+            if not emp.company_id:
+                emp.company_id = company.id
+            db.add(emp)
+            db.flush()
+            print(f"User {data['name']} password updated")
         
         # Create demo shift for each new employee
         shift = db.query(Shift).filter(Shift.employee_id == emp.id).first()
