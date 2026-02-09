@@ -15,19 +15,32 @@ from contextlib import asynccontextmanager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+import anyio
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables and seed data on startup
-    try:
-        logger.info("Initializing database...")
-        # Tables should be created with Alembic usually, but as requested:
-        base.Base.metadata.create_all(bind=engine)
-        db = SessionLocal()
-        init_db(db)
-        db.close()
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Error initializing database: {e}")
+    # Create tables and seed data in background to avoid blocking startup
+    async def init_db_task():
+        try:
+            logger.info("Initializing database in background...")
+            # Run sync DB operations in a thread pool
+            await anyio.to_thread.run_sync(lambda: base.Base.metadata.create_all(bind=engine))
+            
+            def seed():
+                db = SessionLocal()
+                try:
+                    init_db(db)
+                finally:
+                    db.close()
+            
+            await anyio.to_thread.run_sync(seed)
+            logger.info("Database initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing database: {e}")
+
+    # Use a background task so we can yield (and start serving requests) fast
+    # but the init will still run
+    anyio.create_task_group().start_soon(init_db_task)
     yield
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
