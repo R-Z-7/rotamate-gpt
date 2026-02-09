@@ -9,22 +9,28 @@ from app.db import base
 from app.db.session import engine, SessionLocal
 from app.db.init_db import init_db
 
+from contextlib import asynccontextmanager
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.PROJECT_NAME)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create tables and seed data on startup
+    try:
+        logger.info("Initializing database...")
+        # Tables should be created with Alembic usually, but as requested:
+        base.Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        init_db(db)
+        db.close()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+    yield
 
-# Create tables and seed data on startup
-try:
-    logger.info("Initializing database...")
-    base.Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    init_db(db)
-    db.close()
-    logger.info("Database initialized successfully")
-except Exception as e:
-    logger.error(f"Error initializing database: {e}")
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 # Set CORS enabled origins
 origins = [
