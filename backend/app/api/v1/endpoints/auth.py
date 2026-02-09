@@ -37,6 +37,18 @@ def login_access_token(
         "token_type": "bearer",
     }
 
+@router.post("/debug-reseed")
+def debug_reseed(db: Session = Depends(deps.get_db)) -> Any:
+    from app.db import base
+    from app.db.session import engine
+    from app.db.init_db import init_db
+    
+    # Destructive SYNC
+    base.Base.metadata.drop_all(bind=engine)
+    base.Base.metadata.create_all(bind=engine)
+    init_db(db)
+    return {"message": "Database re-seeded successfully"}
+
 @router.post("/register", response_model=UserSchema)
 def register_user(
     *,
