@@ -4,7 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
 
+from app.db import base
+from app.db.session import engine
+
 app = FastAPI(title=settings.PROJECT_NAME)
+
+# Create tables on startup
+base.Base.metadata.create_all(bind=engine)
 
 # Set all CORS enabled origins
 origins = [
