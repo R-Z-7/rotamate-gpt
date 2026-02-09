@@ -8,7 +8,7 @@ from app.schemas.time_off import TimeOffRequest as TimeOffRequestSchema, TimeOff
 
 router = APIRouter()
 
-@router.get("/", response_model=List[TimeOffRequestSchema])
+@router.get("", response_model=List[TimeOffRequestSchema])
 def read_time_off_requests(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
@@ -25,7 +25,7 @@ def read_time_off_requests(
             
     return db.query(TimeOffRequest).filter(TimeOffRequest.employee_id == current_user.id).offset(skip).limit(limit).all()
 
-@router.post("/", response_model=TimeOffRequestSchema)
+@router.post("", response_model=TimeOffRequestSchema)
 def create_time_off_request(
     *,
     db: Session = Depends(deps.get_db),

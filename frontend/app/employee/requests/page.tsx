@@ -52,7 +52,7 @@ export default function RequestsPage() {
 
     const fetchRequests = async () => {
         try {
-            const res = await api.get("/time-off/")
+            const res = await api.get("/time-off")
             setRequests(res.data)
         } catch (err) {
             toast.error("Failed to load requests")
@@ -69,7 +69,7 @@ export default function RequestsPage() {
         }
 
         try {
-            await api.post("/time-off/", {
+            await api.post("/time-off", {
                 start_date: newRequest.start_date.toISOString(),
                 end_date: newRequest.end_date.toISOString(),
                 reason: newRequest.reason,
@@ -95,7 +95,7 @@ export default function RequestsPage() {
         }
     }
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status: string): "default" | "success" | "warning" | "danger" => {
         switch (status.toLowerCase()) {
             case "approved":
                 return "success"
@@ -116,18 +116,19 @@ export default function RequestsPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
                         Time-Off Requests
                     </h1>
-                    <p className="text-slate-500 mt-2">
+                    <p className="text-slate-500 mt-2 text-sm sm:text-base">
                         Submit and manage your time-off requests
                     </p>
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button variant="primary" size="lg" className="gap-2">
+                        <Button variant="default" size="lg" className="gap-2 w-full sm:w-auto shadow-soft hover:shadow-medium">
                             <Plus className="h-4 w-4" />
                             Request Time Off
                         </Button>
@@ -178,7 +179,7 @@ export default function RequestsPage() {
                             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button variant="primary" onClick={handleSubmitRequest}>
+                            <Button variant="default" onClick={handleSubmitRequest}>
                                 Submit Request
                             </Button>
                         </DialogFooter>
@@ -187,7 +188,7 @@ export default function RequestsPage() {
             </div>
 
             {/* Filter */}
-            <Card variant="elevated">
+            <Card>
                 <CardContent className="pt-6">
                     <div className="flex items-center gap-4">
                         <label className="text-sm font-medium">Filter by status:</label>
@@ -218,7 +219,7 @@ export default function RequestsPage() {
                         ))}
                     </div>
                 ) : filteredRequests.length === 0 ? (
-                    <Card variant="elevated" className="text-center py-12">
+                    <Card className="text-center py-12">
                         <CardContent>
                             <Calendar className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                             <p className="text-lg font-medium text-slate-900 dark:text-slate-100">
@@ -233,7 +234,7 @@ export default function RequestsPage() {
                     </Card>
                 ) : (
                     filteredRequests.map((request) => (
-                        <Card key={request.id} variant="elevated">
+                        <Card key={request.id}>
                             <CardContent className="pt-6">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">

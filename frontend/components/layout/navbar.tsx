@@ -1,8 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import Link from "next/link"
-import { ChevronRight, Menu, Search, User } from "lucide-react"
+import { Menu, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { UserMenu } from "@/components/layout/user-menu"
@@ -10,18 +9,20 @@ import { NotificationBell } from "@/components/layout/notification-bell"
 import { MobileMenu } from "@/components/layout/mobile-sidebar"
 import { Sidebar } from "@/components/admin/sidebar"
 import { useAuth } from "@/context/AuthContext"
+import { useSidebar } from "@/context/SidebarContext"
 
-interface NavbarProps {
+/* interface NavbarProps {
     toggleSidebar: () => void;
     sidebarOpen: boolean;
-}
+} */
 
-export function Navbar({ toggleSidebar, sidebarOpen }: NavbarProps) {
+export function Navbar() {
     const pathname = usePathname()
     const { user } = useAuth()
+    const { toggleSidebar } = useSidebar()
 
     return (
-        <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between">
+        <header className="h-16 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between shadow-soft">
             <div className="flex items-center gap-4">
                 {/* Desktop Toggle */}
                 <Button
@@ -36,7 +37,7 @@ export function Navbar({ toggleSidebar, sidebarOpen }: NavbarProps) {
                 {/* Mobile Menu (Drawer) - Reusing existing MobileMenu component but wrapping Sidebar */}
                 <div className="md:hidden">
                     <MobileMenu>
-                        <Sidebar mobile isOpen={true} setIsOpen={() => { }} />
+                        <Sidebar mobile />
                     </MobileMenu>
                 </div>
 

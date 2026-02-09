@@ -69,21 +69,21 @@ export default function MySchedulePage() {
     return (
         <div className="space-y-8 h-full flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
                 <div>
-                    <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
                         My Schedule
                     </h1>
-                    <p className="text-slate-500 mt-2">
+                    <p className="text-slate-500 mt-2 text-sm sm:text-base">
                         View your upcoming shifts and manage your schedule
                     </p>
                 </div>
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto">
                     <Button
                         variant={viewMode === "list" ? "secondary" : "ghost"}
                         size="sm"
                         onClick={() => setViewMode("list")}
-                        className="gap-2"
+                        className="gap-2 flex-1 sm:flex-none"
                     >
                         <List className="h-4 w-4" />
                         List
@@ -92,7 +92,7 @@ export default function MySchedulePage() {
                         variant={viewMode === "calendar" ? "secondary" : "ghost"}
                         size="sm"
                         onClick={() => setViewMode("calendar")}
-                        className="gap-2"
+                        className="gap-2 flex-1 sm:flex-none"
                     >
                         <LayoutGrid className="h-4 w-4" />
                         Calendar
@@ -126,7 +126,7 @@ export default function MySchedulePage() {
                                     transition={{ duration: 0.3, delay: index * 0.1 }}
                                     whileHover={{ scale: 1.02 }}
                                 >
-                                    <Card variant="elevated" className="border-l-4 border-l-blue-500 overflow-hidden">
+                                    <Card className="border-l-4 border-l-blue-500 overflow-hidden shadow-soft hover:shadow-medium transition-shadow">
                                         <CardHeader className="pb-3">
                                             <div className="flex items-start justify-between">
                                                 <CardTitle className="text-lg font-semibold">
