@@ -15,3 +15,4 @@ httpx
 requests
 psycopg2-binary
 bcrypt
+email-validator
