@@ -74,7 +74,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to RotaMate API - v20-Final-Stable"}
+    return {"message": "Welcome to RotaMate API - v21-Final-Production-Stable"}
 
 @app.get("/healthz")
 @app.get("/health")
