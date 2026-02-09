@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+import asyncio
 import anyio
 
 @asynccontextmanager
@@ -40,7 +41,7 @@ async def lifespan(app: FastAPI):
 
     # Use a background task so we can yield (and start serving requests) fast
     # but the init will still run
-    anyio.create_task_group().start_soon(init_db_task)
+    asyncio.create_task(init_db_task())
     yield
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
