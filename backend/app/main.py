@@ -75,3 +75,22 @@ def root():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global error caught: {exc}")
+    # We manually add CORS headers to the error response
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)},
+    )
+    # Origin from request headers
+    origin = request.headers.get("origin")
+    if origin in origins or "*" in origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return response
