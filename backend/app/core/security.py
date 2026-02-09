@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional, Any, Union
 from jose import jwt
-import bcrypt
 import hashlib
+import os
 from app.core.config import settings
 
 ALGORITHM = "HS256"
