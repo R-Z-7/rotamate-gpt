@@ -13,5 +13,4 @@ langgraph
 httpx
 requests
 psycopg2-binary
-bcrypt==3.1.7
 email-validator
