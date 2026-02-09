@@ -8,7 +8,7 @@ import { AlertCircle, ArrowLeft, Home } from "lucide-react"
 export default function NotFound() {
     const { user } = useAuth()
 
-    const dashboardLink = user?.role === 'super_admin'
+    const dashboardLink = user?.role === 'superadmin'
         ? '/superadmin/dashboard'
         : user?.role === 'admin'
             ? '/admin/dashboard'

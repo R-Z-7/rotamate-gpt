@@ -41,8 +41,12 @@ export default function AdminLayout({
 
     // Protect Admin Routes
     useEffect(() => {
-        if (!isLoading && !localStorage.getItem('token')) {
-            router.push('/login');
+        if (!isLoading) {
+            if (!localStorage.getItem('token')) {
+                router.push('/login');
+            } else if (user && user.role !== 'admin' && user.role !== 'superadmin') {
+                router.push('/employee/schedule');
+            }
         }
     }, [isLoading, user, router]);
 

@@ -19,7 +19,7 @@ def create_user(db: Session, user: UserCreate, company_id: Optional[int] = None)
         full_name=user.full_name,
         role=user.role,
         is_active=True,
-        company_id=company_id
+        company_id=company_id or user.company_id
     )
     db.add(db_user)
     db.commit()
