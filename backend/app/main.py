@@ -91,11 +91,20 @@ from fastapi.responses import JSONResponse
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Global error caught: {exc}")
+    import traceback
+    import logging
+    err_logger = logging.getLogger("uvicorn.error")
+    stack_trace = traceback.format_exc()
+    err_logger.error(f"Global error caught: {exc}\n{stack_trace}")
+    
     # We manually add CORS headers to the error response
     response = JSONResponse(
         status_code=500,
-        content={"detail": "Internal Server Error", "error": str(exc)},
+        content={
+            "detail": "Internal Server Error", 
+            "error": str(exc),
+            "traceback": stack_trace if not settings.SECRET_KEY.startswith("CHANGEME") else "Redacted"
+        },
     )
     # Origin from request headers
     origin = request.headers.get("origin")
