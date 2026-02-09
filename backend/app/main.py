@@ -105,7 +105,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "detail": "Internal Server Error", 
             "error": str(exc),
-            "traceback": stack_trace if not settings.SECRET_KEY.startswith("CHANGEME") else "Redacted"
+            "traceback": stack_trace
         },
     )
     # Origin from request headers
