@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # Default to sqlite for local dev ease if no postgres URL provided
     SQLALCHEMY_DATABASE_URI: str = os.getenv("DATABASE_URL", "sqlite:///./rotamate.db")
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.SQLALCHEMY_DATABASE_URI and self.SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+            self.SQLALCHEMY_DATABASE_URI = self.SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+
     # AI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 

@@ -1,16 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import logging
 from app.core.config import settings
 from app.api.v1.api import api_router
 
 from app.db import base
 from app.db.session import engine
 
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # Create tables on startup
-base.Base.metadata.create_all(bind=engine)
+try:
+    logger.info("Creating database tables...")
+    base.Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created successfully")
+except Exception as e:
+    logger.error(f"Error creating database tables: {e}")
 
 # Set all CORS enabled origins
 origins = [
