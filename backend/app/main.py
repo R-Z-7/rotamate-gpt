@@ -9,6 +9,7 @@ from app.api.v1.api import api_router
 from app.db import base
 from app.db.session import engine, SessionLocal
 from app.db.init_db import init_db
+from app.api import deps
 
 from contextlib import asynccontextmanager
 
