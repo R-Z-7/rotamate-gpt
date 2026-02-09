@@ -18,16 +18,8 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-import logging
-logger = logging.getLogger(__name__)
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    try:
-        logger.info(f"Verifying password. Plain length: {len(plain_password)}, Hash length: {len(hashed_password) if hashed_password else 0}")
-        return pwd_context.verify(plain_password, hashed_password)
-    except Exception as e:
-        logger.error(f"Error in verify_password: {e}")
-        raise
+    return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)

@@ -20,23 +20,7 @@ def login_access_token(
     db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     user = get_user_by_email(db, email=form_data.username)
-    if not user:
-        logger.warning(f"User not found: {form_data.username}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-
-    try:
-        check = security.verify_password(form_data.password, user.hashed_password)
-    except Exception as e:
-        logger.error(f"Bcrypt verification error: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Bcrypt error: {str(e)}. PlainLen: {len(form_data.password)}, HashLen: {len(user.hashed_password) if user.hashed_password else 0}"
-        )
-
-    if not check:
+    if not user or not security.verify_password(form_data.password, user.hashed_password):
         logger.warning(f"Failed login attempt for email: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

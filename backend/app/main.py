@@ -71,7 +71,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to RotaMate API - Debug v13-RawTraceback"}
+    return {"message": "Welcome to RotaMate API - v14-Stable-Release"}
 
 @app.get("/healthz")
 @app.get("/health")
@@ -105,7 +105,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "detail": "Internal Server Error", 
             "error": str(exc),
-            "traceback": stack_trace
+            "traceback": stack_trace if not settings.SECRET_KEY.startswith("CHANGEME") else "Redacted"
         },
     )
     # Origin from request headers
