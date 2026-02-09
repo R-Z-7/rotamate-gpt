@@ -26,6 +26,9 @@ async def lifespan(app: FastAPI):
     async def init_db_task():
         try:
             logger.info("Initializing database in background...")
+            # FORCE DROP for re-seeding with new hash format
+            await anyio.to_thread.run_sync(lambda: base.Base.metadata.drop_all(bind=engine))
+            
             # Run sync DB operations in a thread pool
             await anyio.to_thread.run_sync(lambda: base.Base.metadata.create_all(bind=engine))
             
@@ -71,7 +74,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to RotaMate API - v15-Final-Stable"}
+    return {"message": "Welcome to RotaMate API - v16-Force-ReSeed"}
 
 @app.get("/healthz")
 @app.get("/health")

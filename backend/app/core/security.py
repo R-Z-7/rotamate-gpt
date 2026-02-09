@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Any, Union
 from jose import jwt
 import bcrypt
+import hashlib
 from app.core.config import settings
 
 ALGORITHM = "HS256"
@@ -20,9 +21,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         if not hashed_password:
             return False
-        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+        # Pre-hash with sha256 to ensure length < 72
+        pwd_hash = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
+        return bcrypt.checkpw(pwd_hash.encode('utf-8'), hashed_password.encode('utf-8'))
     except Exception:
         return False
 
 def get_password_hash(password: str) -> str:
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # Pre-hash with sha256 to ensure length < 72
+    pwd_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    return bcrypt.hashpw(pwd_hash.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
