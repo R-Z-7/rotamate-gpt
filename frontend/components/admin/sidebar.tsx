@@ -36,7 +36,7 @@ export function Sidebar({ mobile }: { mobile?: boolean }) {
         { title: "Rota Management", href: "/admin/rota", icon: Calendar },
         { title: "Time Off Requests", href: "/admin/requests", icon: Clock },
         { title: "Reports", href: "/admin/reports", icon: FileText },
-        { title: "Settings", href: "/admin/settings", icon: Settings },
+        { title: "Settings", href: "/settings", icon: Settings },
     ];
 
     if (mobile) {

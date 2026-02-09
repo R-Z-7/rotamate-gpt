@@ -11,3 +11,6 @@ api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 from app.api.v1.endpoints import analytics, notifications
 api_router.include_router(analytics.router, prefix="/dashboard-metrics", tags=["analytics"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+
+from app.api.v1.endpoints import superadmin
+api_router.include_router(superadmin.router, prefix="/superadmin", tags=["superadmin"])

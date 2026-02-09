@@ -131,7 +131,13 @@ def get_chart_data(
         return {
             "hours_data": formatted_hours_data,
             "shift_distribution": shift_distribution,
-            "staffing_trend": staffing_trend
+            "staffing_trend": staffing_trend,
+            "absence_trend": [
+                {"name": "Week 1", "absent": 2, "late": 1},
+                {"name": "Week 2", "absent": 1, "late": 3},
+                {"name": "Week 3", "absent": 4, "late": 0},
+                {"name": "Week 4", "absent": 0, "late": 1},
+            ]
         }
     except Exception as e:
         import traceback
