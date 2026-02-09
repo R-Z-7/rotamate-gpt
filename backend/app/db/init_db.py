@@ -5,6 +5,7 @@ from app.db.session import SessionLocal, engine
 from app.core.security import get_password_hash
 from app.db.models import User, UserRole, Shift, Company
 from datetime import datetime, timedelta
+import random
 
 def init_db(db: Session) -> None:
     # Tables should be created with Alembic migrations
@@ -55,42 +56,41 @@ def init_db(db: Session) -> None:
             db.add(admin)
             print("Admin user linked to company")
 
-    # 4. Create Employee User (Linked to Demo Company)
-    employee = db.query(User).filter(User.email == "employee@rotamate.com").first()
-    if not employee:
-        employee = User(
-            email="employee@rotamate.com",
-            hashed_password=get_password_hash("employee123"),
-            full_name="John Doe",
-            role=UserRole.EMPLOYEE,
-            is_active=True,
-            company_id=company.id
-        )
-        db.add(employee)
-        db.flush()
-        print("Employee user created")
-    else:
-        if not employee.company_id:
-            employee.company_id = company.id
-            db.add(employee)
-            print("Employee user linked to company")
+    # 4. Create Employee Users (Linked to Demo Company)
+    employee_data = [
+        {"email": "employee@rotamate.com", "name": "John Doe", "role": UserRole.EMPLOYEE, "pass": "employee123"},
+        {"email": "jane@example.com", "name": "Jane Smith", "role": UserRole.EMPLOYEE, "pass": "password123"},
+        {"email": "mike@example.com", "name": "Mike Ross", "role": UserRole.EMPLOYEE, "pass": "password123"},
+        {"email": "sarah@example.com", "name": "Sarah Connor", "role": UserRole.ADMIN, "pass": "password123"},
+    ]
 
-        # Create demo shift linked to company
-        shift = db.query(Shift).filter(Shift.employee_id == employee.id).first()
+    for data in employee_data:
+        emp = db.query(User).filter(User.email == data["email"]).first()
+        if not emp:
+            emp = User(
+                email=data["email"],
+                hashed_password=get_password_hash(data["pass"]),
+                full_name=data["name"],
+                role=data["role"],
+                is_active=True,
+                company_id=company.id
+            )
+            db.add(emp)
+            db.flush()
+            print(f"User {data['name']} created")
+        
+        # Create demo shift for each new employee
+        shift = db.query(Shift).filter(Shift.employee_id == emp.id).first()
         if not shift:
             shift = Shift(
-                employee_id=employee.id,
+                employee_id=emp.id,
                 company_id=company.id,
-                start_time=datetime.utcnow() + timedelta(days=1, hours=9),
-                end_time=datetime.utcnow() + timedelta(days=1, hours=17),
-                role_type="Nurse",
+                start_time=datetime.utcnow() + timedelta(days=random.randint(1, 5), hours=random.randint(8, 14)),
+                end_time=datetime.utcnow() + timedelta(days=1, hours=random.randint(17, 22)),
+                role_type="Staff",
                 status="assigned"
             )
             db.add(shift)
-        else:
-            if not shift.company_id:
-                shift.company_id = company.id
-                db.add(shift)
 
     db.commit()
 

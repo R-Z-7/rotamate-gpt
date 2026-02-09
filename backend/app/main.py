@@ -6,7 +6,8 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 
 from app.db import base
-from app.db.session import engine
+from app.db.session import engine, SessionLocal
+from app.db.init_db import init_db
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -14,13 +15,16 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
-# Create tables on startup
+# Create tables and seed data on startup
 try:
-    logger.info("Creating database tables...")
+    logger.info("Initializing database...")
     base.Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created successfully")
+    db = SessionLocal()
+    init_db(db)
+    db.close()
+    logger.info("Database initialized successfully")
 except Exception as e:
-    logger.error(f"Error creating database tables: {e}")
+    logger.error(f"Error initializing database: {e}")
 
 # Set CORS enabled origins
 origins = [
