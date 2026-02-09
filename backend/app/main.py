@@ -50,14 +50,17 @@ app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5173",
     "https://rotamate-lilac.vercel.app",
     "https://rotamate-lilac-git-main-rameesk.vercel.app",
+    "https://rotamate.onrender.com",
+    "https://rotamate-backend.onrender.com",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For production debugging, let's use * then tighten it
-    allow_credentials=False, # Credentials can't be * with allow_origins=*
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
