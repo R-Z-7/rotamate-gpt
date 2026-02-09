@@ -37,17 +37,6 @@ def login_access_token(
         "token_type": "bearer",
     }
 
-@router.post("/debug-reseed")
-def debug_reseed(db: Session = Depends(deps.get_db)) -> Any:
-    from app.db import base
-    from app.db.session import engine
-    from app.db.init_db import init_db
-    
-    # Destructive SYNC (Metadata drop is optional now that init_db updates users, but safer to keep)
-    base.Base.metadata.create_all(bind=engine)
-    init_db(db)
-    return {"message": "Database synchronized successfully"}
-
 @router.post("/register", response_model=UserSchema)
 def register_user(
     *,
