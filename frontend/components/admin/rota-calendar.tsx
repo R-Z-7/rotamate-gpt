@@ -75,28 +75,44 @@ export function RotaCalendar({
         }
         const { active, over } = event
 
-        // The 'over' id handles the drop target. 
-        // In this grid implementation, we need to know WHICH day we dropped on.
-        // We can attach data to the droppable zones.
-
-        // Simplified Logic: For now, we are relying on visual cue only as the implementation 
-        // of finding the exact *date* from the drop zone requires the drop zone to be a droppable.
-        // Assuming the parent component will handle the logic if we pass the shift info.
-
-        // However, looking at the previous implementation, the drop logic seemed incomplete 
-        // in the provided snippet ("// Logic to update shift date").
-        // To make this fully functional, we'd need DndContext's `over` to have the date ID.
-
-        // Since I'm focusing on attributes/styling, I will retain the structure but ensure
-        // the drop zones have IDs corresponding to the date ISO string.
-
         if (over && active.id !== over.id) {
-            // If over.id is a date string (which we set on the columns), we move to that date.
-            const dateStr = over.id as string
-            const newDate = new Date(dateStr)
+            // Check if over.id is a date string (day column)
+            // Or if it's another shift, we need to find the day it belongs to.
+            // But since shifts are children of DroppableDay, dropping on a shift often means dropping on the day.
+            // However, @dnd-kit usually reports the specific droppable under cursor.
 
-            if (!isNaN(newDate.getTime())) {
-                onShiftMove(active.id as number, newDate)
+            // In our structure:
+            // - Day column has id = date.toISOString()
+            // - Shifts are Sortable, which are also droppable targets by default in SortableContext.
+
+            // If we drop on a SortableShift, `over.id` will be the shift ID.
+            // We need to find which day column contains this shift or corresponds to the drop.
+
+            // Strategy: 
+            // 1. If over.id is a date string -> Use it.
+            // 2. If over.id is a shift ID -> Find that shift and use its start time's day.
+
+            let targetDate: Date | null = null;
+            const dateStr = over.id as string;
+
+            // Check if ID is a valid date string from our columns
+            const potentialDate = new Date(dateStr);
+            if (!isNaN(potentialDate.getTime()) && dateStr.includes('T')) {
+                // Likely a date string (ISO format)
+                targetDate = potentialDate;
+            } else {
+                // Assume it's a shift ID
+                const overShiftId = over.id as number;
+                const overShift = shifts.find(s => s.id === overShiftId);
+                if (overShift) {
+                    targetDate = new Date(overShift.startTime);
+                }
+            }
+
+            if (targetDate) {
+                // Ensure we preserve the TIME of the shift, only changing the DATE
+                // Implementation on parent handles time preservation, we just pass the new DATE.
+                onShiftMove(active.id as number, targetDate);
             }
         }
 
@@ -152,12 +168,14 @@ function DroppableDay({
     day,
     children,
     readOnly,
-    onSlotClick
+    onSlotClick,
+    activeId
 }: {
     day: Date,
     children: React.ReactNode,
     readOnly: boolean,
-    onSlotClick?: (date: Date) => void
+    onSlotClick?: (date: Date) => void,
+    activeId?: number | null
 }) {
     const { isOver, setNodeRef } = useDroppable({
         id: day.toISOString(),
@@ -166,11 +184,17 @@ function DroppableDay({
 
     const isToday = isSameDay(day, new Date())
 
+    // Explicitly check if the dragged item is over this container
+    // When dragging a shift OVER another shift, dnd-kit might report the shift as 'over'
+    // but the drop event bubbles or we can check visually.
+    // For simple visual feedback, `isOver` from `useDroppable` is best when the cursor is over the container directly.
+
     return (
         <div className="flex flex-col gap-2 h-full">
             <div className={cn(
                 "text-center p-3 rounded-t-lg font-medium transition-colors",
-                isToday ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                isToday ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground",
+                isOver && !readOnly ? "bg-primary/80 text-primary-foreground scale-105" : ""
             )}>
                 <div className="text-xs uppercase tracking-wider opacity-80">{format(day, "EEE")}</div>
                 <div className="text-xl font-bold">{format(day, "d")}</div>
@@ -181,7 +205,7 @@ function DroppableDay({
                     "flex-1 rounded-b-lg border-2 border-t-0 p-2 space-y-2 transition-all duration-200",
                     isToday ? "border-primary/20 bg-primary/5" : "border-muted bg-card",
                     !readOnly && "hover:bg-accent/50 cursor-pointer",
-                    isOver && "border-primary ring-2 ring-primary/20 bg-accent"
+                    isOver && !readOnly && "border-primary ring-2 ring-primary/20 bg-primary/10 shadow-inner"
                 )}
                 onClick={() => !readOnly && onSlotClick?.(day)}
             >

@@ -71,11 +71,13 @@ export default function RotaPage() {
     const handleToday = () => setCurrentDate(new Date())
 
     const handleShiftMove = async (shiftId: number, newDate: Date) => {
-        const shift = shifts.find((s) => s.id === shiftId)
-        if (!shift) return
+        const shiftIndex = shifts.findIndex((s) => s.id === shiftId)
+        if (shiftIndex === -1) return
+        const shift = shifts[shiftIndex]
 
         const oldStartTime = new Date(shift.startTime)
         const oldEndTime = new Date(shift.endTime)
+        const originalShifts = [...shifts] // Backup for rollback
 
         const newStartTime = new Date(newDate)
         newStartTime.setHours(oldStartTime.getHours(), oldStartTime.getMinutes())
@@ -87,7 +89,17 @@ export default function RotaPage() {
             newEndTime.setDate(newEndTime.getDate() + 1)
         }
 
-        // Optimistic UI update could go here, but for simplicity we await functionality
+        // Optimistic Update
+        const updatedShift = {
+            ...shift,
+            startTime: newStartTime.toISOString(),
+            endTime: newEndTime.toISOString(),
+        }
+
+        const newShifts = [...shifts]
+        newShifts[shiftIndex] = updatedShift
+        setShifts(newShifts)
+
         try {
             await api.put(`/shifts/${shiftId}`, {
                 start_time: newStartTime.toISOString(),
@@ -95,9 +107,14 @@ export default function RotaPage() {
                 employee_id: shift.employeeId,
             })
             toast.success("Shift rescheduled")
-            fetchData()
+            // No need to fetchData() immediately if successful, but we can to be safe
+            // or just rely on the optimistic update.
+            // fetchData() 
         } catch (err) {
             toast.error("Failed to move shift")
+            // Rollback
+            setShifts(originalShifts)
+            // Maybe fetch to ensure sync
             fetchData()
         }
     }
