@@ -1,8 +1,7 @@
-"use client"
-
 import { useAuth } from "@/context/AuthContext"
 import AdminLayout from "@/app/admin/layout"
 import EmployeeLayout from "@/app/employee/layout"
+import SuperAdminLayout from "@/app/superadmin/layout"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
@@ -25,6 +24,10 @@ export default function ProfileLayout({
     }
 
     if (!user) return null
+
+    if (user.role === "superadmin") {
+        return <SuperAdminLayout>{children}</SuperAdminLayout>
+    }
 
     if (user.role === "admin") {
         return <AdminLayout>{children}</AdminLayout>

@@ -11,6 +11,8 @@ export default function DashboardRedirect() {
         if (!isLoading) {
             if (!user) {
                 router.push('/login')
+            } else if (user.role === 'superadmin') {
+                router.push('/superadmin/dashboard')
             } else if (user.role === 'admin') {
                 router.push('/admin/dashboard')
             } else {

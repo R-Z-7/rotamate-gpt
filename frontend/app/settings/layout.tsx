@@ -1,8 +1,6 @@
-"use client"
-
 import { useAuth } from "@/context/AuthContext"
 import AdminLayout from "@/app/admin/layout"
-import EmployeeLayout from "@/app/employee/layout"
+import SuperAdminLayout from "@/app/superadmin/layout"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
@@ -15,8 +13,13 @@ export default function SettingsLayout({
     const router = useRouter()
 
     useEffect(() => {
-        if (!isLoading && !user) {
-            router.push("/login")
+        if (!isLoading) {
+            if (!user) {
+                router.push("/login")
+            } else if (user.role !== "admin" && user.role !== "superadmin") {
+                // Settings page is currently admin-only
+                router.push("/employee/schedule")
+            }
         }
     }, [isLoading, user, router])
 
@@ -26,9 +29,13 @@ export default function SettingsLayout({
 
     if (!user) return null
 
+    if (user.role === "superadmin") {
+        return <SuperAdminLayout>{children}</SuperAdminLayout>
+    }
+
     if (user.role === "admin") {
         return <AdminLayout>{children}</AdminLayout>
     }
 
-    return <EmployeeLayout>{children}</EmployeeLayout>
+    return null // Should not reach here due to redirect
 }
