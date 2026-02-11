@@ -10,6 +10,8 @@ import { ShiftFormDrawer } from "@/components/admin/shift-form-drawer"
 import api from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { SmartScheduleModal } from "@/components/admin/smart-schedule-modal"
+import { SuggestScheduleButton } from "@/components/admin/suggest-schedule-button"
 
 export default function RotaPage() {
     const router = useRouter()
@@ -20,6 +22,7 @@ export default function RotaPage() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
     const [selectedShift, setSelectedShift] = useState<any>(null)
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+    const [isSmartModalOpen, setIsSmartModalOpen] = useState(false)
 
     useEffect(() => {
         fetchData()
@@ -179,6 +182,7 @@ export default function RotaPage() {
                     <Button variant="outline" size="icon">
                         <Download className="h-4 w-4" />
                     </Button>
+                    <SuggestScheduleButton onClick={() => setIsSmartModalOpen(true)} />
                     <Button onClick={handleCreateShift} className="gap-2 shadow-sm">
                         <Plus className="h-4 w-4" />
                         Add Shift
@@ -245,6 +249,13 @@ export default function RotaPage() {
                 employees={employees}
                 initialData={selectedShift}
                 initialDate={selectedDate}
+            />
+
+            <SmartScheduleModal
+                isOpen={isSmartModalOpen}
+                onClose={() => setIsSmartModalOpen(false)}
+                onApply={() => fetchData()}
+                currentDate={currentDate}
             />
         </div>
     )
