@@ -1,3 +1,5 @@
+"use client"
+
 import { useAuth } from "@/context/AuthContext"
 import AdminLayout from "@/app/admin/layout"
 import EmployeeLayout from "@/app/employee/layout"
