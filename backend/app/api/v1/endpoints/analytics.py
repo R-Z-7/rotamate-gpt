@@ -26,10 +26,11 @@ def get_stats(
 
     # Tenant Isolation
     if current_user.role != "superadmin":
-        if current_user.company_id:
-            user_query = user_query.filter(User.company_id == current_user.company_id)
-            shift_query = shift_query.filter(Shift.company_id == current_user.company_id)
-            request_query = request_query.filter(TimeOffRequest.company_id == current_user.company_id)
+        if not current_user.company_id:
+            return {"employees": 0, "shifts": 0, "requests": 0, "alerts": 0}
+        user_query = user_query.filter(User.company_id == current_user.company_id)
+        shift_query = shift_query.filter(Shift.company_id == current_user.company_id)
+        request_query = request_query.filter(TimeOffRequest.company_id == current_user.company_id)
             
     total_employees = user_query.count()
     
@@ -60,8 +61,14 @@ def get_chart_data(
         # Base Shift Query
         shift_query = db.query(Shift)
         if current_user.role != "superadmin":
-            if current_user.company_id:
-                shift_query = shift_query.filter(Shift.company_id == current_user.company_id)
+            if not current_user.company_id:
+                return {
+                    "hours_data": [],
+                    "shift_distribution": [],
+                    "staffing_trend": [],
+                    "absence_trend": [],
+                }
+            shift_query = shift_query.filter(Shift.company_id == current_user.company_id)
 
         # 1. Hours Worked (Last 7 days)
         today = datetime.utcnow().date()

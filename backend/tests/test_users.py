@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
-from app.db.models import Company
+from app.core.security import get_password_hash
+from app.db.models import Company, User
 from sqlalchemy.orm import Session
 
 def get_auth_headers(client: TestClient, db: Session, email: str = "admin@example.com", role: str = "admin"):
@@ -7,19 +8,30 @@ def get_auth_headers(client: TestClient, db: Session, email: str = "admin@exampl
     if not db.query(Company).filter(Company.id == 1).first():
         company = Company(id=1, name="Test Company")
         db.add(company)
-        db.commit()
+        db.flush()
+    else:
+        company = db.query(Company).filter(Company.id == 1).first()
+
+    existing_user = db.query(User).filter(User.email == email).first()
+    if not existing_user:
+        existing_user = User(
+            email=email,
+            hashed_password=get_password_hash("password123"),
+            full_name="Admin User",
+            role=role,
+            company_id=company.id,
+            is_active=True,
+        )
+        db.add(existing_user)
+    else:
+        existing_user.hashed_password = get_password_hash("password123")
+        existing_user.role = role
+        existing_user.company_id = company.id
+        existing_user.is_active = True
+        db.add(existing_user)
+    db.commit()
     
-    # Register/Login helper
-    client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": "password123",
-            "full_name": "Admin User",
-            "role": role,
-            "company_id": 1,
-        },
-    )
+    # Login helper
     response = client.post(
         "/api/v1/auth/login",
         data={"username": email, "password": "password123"},

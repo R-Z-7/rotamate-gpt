@@ -7,10 +7,12 @@ from app.db.models import User, UserRole, Shift, Company
 from datetime import datetime, timedelta
 import random
 
-def init_db(db: Session) -> None:
+def init_db(db: Session, seed_demo: bool = False) -> None:
     # Tables should be created with Alembic migrations
     # But if you don't want to use migrations, create all here
     base.Base.metadata.create_all(bind=engine)
+    if not seed_demo:
+        return
 
     # 1. Create Demo Company
     company = db.query(Company).filter(Company.name == "Demo Company").first()
@@ -33,10 +35,6 @@ def init_db(db: Session) -> None:
         )
         db.add(super_admin)
         print("Super Admin created")
-    else:
-        super_admin.hashed_password = get_password_hash("superadmin123")
-        db.add(super_admin)
-        print("Super Admin password updated")
     db.flush()
 
     # 3. Create Admin User (Linked to Demo Company)
@@ -52,11 +50,10 @@ def init_db(db: Session) -> None:
         )
         db.add(admin)
         print("Admin user created")
-    else:
-        admin.hashed_password = get_password_hash("admin123")
+    elif not admin.company_id:
         admin.company_id = company.id
         db.add(admin)
-        print("Admin user updated/linked")
+        print("Admin user linked to demo company")
     db.flush()
 
     # 4. Create Employee Users (Linked to Demo Company)
@@ -82,13 +79,12 @@ def init_db(db: Session) -> None:
             db.flush()
             print(f"User {data['name']} created")
         else:
-            emp.hashed_password = get_password_hash(data["pass"])
             # Ensure company link if missing
             if not emp.company_id:
                 emp.company_id = company.id
-            db.add(emp)
-            db.flush()
-            print(f"User {data['name']} password updated")
+                db.add(emp)
+                db.flush()
+                print(f"User {data['name']} linked to demo company")
         
         # Create demo shift for each new employee
         shift = db.query(Shift).filter(Shift.employee_id == emp.id).first()
@@ -108,5 +104,5 @@ def init_db(db: Session) -> None:
 if __name__ == "__main__":
     print("Creating initial data")
     db = SessionLocal()
-    init_db(db)
+    init_db(db, seed_demo=True)
     print("Initial data created")

@@ -6,7 +6,7 @@ import { NotificationBell } from "@/components/layout/notification-bell";
 import { DemoBadge } from "@/components/layout/demo-badge";
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 export default function EmployeeLayout({
     children,
@@ -16,20 +16,29 @@ export default function EmployeeLayout({
     const { user, isLoading } = useAuth();
     const router = useRouter();
 
-    const [isAuthorized, setIsAuthorized] = useState(false);
-
     useEffect(() => {
-        if (!isLoading) {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-            } else {
-                setIsAuthorized(true);
-            }
+        if (isLoading) {
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token || !user) {
+            router.push('/login');
+            return;
+        }
+
+        if (user.role === 'admin') {
+            router.push('/admin/dashboard');
+            return;
+        }
+
+        if (user.role === 'superadmin') {
+            router.push('/superadmin/dashboard');
         }
     }, [isLoading, user, router]);
 
-    if (isLoading || !isAuthorized) {
+    const isEmployee = user?.role === 'employee';
+    if (isLoading || !isEmployee) {
         return (
             <div className="flex h-screen items-center justify-center space-y-4 flex-col">
                 <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />

@@ -69,6 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         } catch (e) {
             console.error(e);
+            localStorage.removeItem('token');
+            setUser(null);
+            setIsAuthenticated(false);
             router.push('/login'); // Fallback to login on error
         }
     };

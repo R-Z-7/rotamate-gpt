@@ -43,6 +43,12 @@ def register_user(
     db: Session = Depends(deps.get_db),
     user_in: UserCreate,
 ) -> Any:
+    if user_in.role != "employee" or user_in.company_id is not None:
+        raise HTTPException(
+            status_code=403,
+            detail="Public registration only allows employee users without a company assignment.",
+        )
+
     user = get_user_by_email(db, email=user_in.email)
     if user:
         raise HTTPException(

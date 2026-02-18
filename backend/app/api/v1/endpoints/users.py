@@ -24,8 +24,9 @@ def read_users(
     
     # Tenant Isolation
     if current_user.role != "superadmin":
-        if current_user.company_id:
-            query = query.filter(User.company_id == current_user.company_id)
+        if not current_user.company_id:
+            raise HTTPException(status_code=403, detail="User is not assigned to a company")
+        query = query.filter(User.company_id == current_user.company_id)
     else:
         if company_id:
             query = query.filter(User.company_id == company_id)
@@ -51,6 +52,9 @@ def create_user_endpoint(
     # Determine company context
     company_id = current_user.company_id
     
+    if current_user.role != "superadmin" and user_in.role != "employee":
+        raise HTTPException(status_code=403, detail="Admins can only create employee users")
+
     if current_user.role == "superadmin":
         if user_in.company_id:
             company_id = user_in.company_id
@@ -90,6 +94,13 @@ def update_user_endpoint(
             status_code=404,
             detail="The user with this id does not exist in the system",
         )
+
+    if current_user.role != "superadmin":
+        if not current_user.company_id or user.company_id != current_user.company_id:
+            raise HTTPException(status_code=404, detail="The user with this id does not exist in the system")
+        if user_in.role and user_in.role != "employee":
+            raise HTTPException(status_code=403, detail="Admins can only assign employee role")
+
     user = update_user(db, db_user=user, user_in=user_in)
     return user
 
@@ -106,6 +117,11 @@ def delete_user_endpoint(
             status_code=404,
             detail="The user with this id does not exist in the system",
         )
+
+    if current_user.role != "superadmin":
+        if not current_user.company_id or user.company_id != current_user.company_id:
+            raise HTTPException(status_code=404, detail="The user with this id does not exist in the system")
+
     try:
         user = delete_user(db, user_id=user_id)
         return user

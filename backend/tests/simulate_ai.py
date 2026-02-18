@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 def test_ai_generation():
-    url = "http://localhost:8000/api/v1/ai/generate"
+    url = "http://localhost:8000/api/v1/ai/suggest_schedule"
     # Authenticate first (mocking logic or using a known token if needed, 
     # but the stub might be protected. Let's get a token.)
     
@@ -22,8 +22,7 @@ def test_ai_generation():
     payload = {
         "start_date": "2026-03-01",
         "end_date": "2026-03-07",
-        "employee_ids": [1],
-        "shifts_per_day": 2
+        "company_id": 1
     }
 
     print(f"Sending request to {url} with payload: {payload}")

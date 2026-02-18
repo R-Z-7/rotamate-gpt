@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import Any, List
+from typing import Any
 from datetime import timedelta, datetime
 import os
 import random
@@ -59,13 +59,26 @@ def generate_mock_schedule(users: Any, request: ScheduleRequest) -> AIResponse:
 def suggest_schedule(
     request: ScheduleRequest,
     db: Session = Depends(deps.get_db),
-    # current_user: models.User = Depends(deps.get_current_active_superuser), # relaxed auth for demo
+    current_user: models.User = Depends(deps.get_current_active_admin),
 ) -> Any:
     """
     Suggest a schedule based on availability and constraints.
     """
+    if current_user.role == "superadmin":
+        if not request.company_id:
+            raise HTTPException(status_code=400, detail="company_id is required for superadmin requests")
+        company_id = request.company_id
+    else:
+        if not current_user.company_id:
+            raise HTTPException(status_code=403, detail="Admin has no company association")
+        company_id = current_user.company_id
+
     # 1. Fetch Candidates
-    users = db.query(models.User).filter(models.User.is_active == True).all()
+    users = db.query(models.User).filter(
+        models.User.is_active == True,
+        models.User.company_id == company_id,
+        models.User.role == "employee",
+    ).all()
     if not users:
         raise HTTPException(status_code=400, detail="No active employees found")
 

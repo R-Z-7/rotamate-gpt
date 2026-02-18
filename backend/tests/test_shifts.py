@@ -1,7 +1,9 @@
 from fastapi.testclient import TestClient
 from datetime import datetime, timedelta
+from uuid import uuid4
 
-from app.db.models import Company
+from app.core.security import get_password_hash
+from app.db.models import Company, User
 from sqlalchemy.orm import Session
 
 def get_auth_headers(client: TestClient, db: Session, email: str = "shiftadmin@example.com"):
@@ -9,19 +11,30 @@ def get_auth_headers(client: TestClient, db: Session, email: str = "shiftadmin@e
     if not db.query(Company).filter(Company.id == 1).first():
         company = Company(id=1, name="Test Company")
         db.add(company)
-        db.commit()
+        db.flush()
+    else:
+        company = db.query(Company).filter(Company.id == 1).first()
+
+    existing_user = db.query(User).filter(User.email == email).first()
+    if not existing_user:
+        existing_user = User(
+            email=email,
+            hashed_password=get_password_hash("password123"),
+            full_name="Shift Admin",
+            role="admin",
+            company_id=company.id,
+            is_active=True,
+        )
+        db.add(existing_user)
+    else:
+        existing_user.hashed_password = get_password_hash("password123")
+        existing_user.role = "admin"
+        existing_user.company_id = company.id
+        existing_user.is_active = True
+        db.add(existing_user)
+    db.commit()
     
-    # Register/Login helper
-    client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": email,
-            "password": "password123",
-            "full_name": "Shift Admin",
-            "role": "admin",
-            "company_id": 1,
-        },
-    )
+    # Login helper
     response = client.post(
         "/api/v1/auth/login",
         data={"username": email, "password": "password123"},
@@ -30,11 +43,12 @@ def get_auth_headers(client: TestClient, db: Session, email: str = "shiftadmin@e
     return {"Authorization": f"Bearer {token}"}
 
 def create_employee(client: TestClient, headers):
+    email = f"shiftworker-{uuid4().hex[:8]}@example.com"
     res = client.post(
         "/api/v1/users/",
         headers=headers,
         json={
-            "email": "shiftworker@example.com",
+            "email": email,
             "password": "pass",
             "full_name": "Worker",
             "role": "employee",
@@ -68,22 +82,17 @@ def test_create_shift(client: TestClient, db_session: Session):
 
 def test_ai_rota_generation_stub(client: TestClient, db_session: Session):
     headers = get_auth_headers(client, db_session, email="aiadmin@example.com")
-    # This just tests the endpoint is reachable and returns the mock response
-    # Real AI testing requires OpenAI key, this is a mock test as requested
+    create_employee(client, headers)
     response = client.post(
-        "/api/v1/ai/generate",
+        "/api/v1/ai/suggest_schedule",
         headers=headers,
         json={
             "start_date": "2026-03-01",
             "end_date": "2026-03-07",
-            "employee_ids": [], # mock
-            "shifts_per_day": 2
+            "company_id": 1,
         }
     )
-    # The current implementation stub might require more tweaking or return 200/500 depending on if OpenAI key is missing 
-    # Check `api/v1/endpoints/ai.py`
-    # If no key, it might fail. Let's see.
-    # Actually, let's assume it fails if key is missing, so we might skip or expect 500
-    # But user asked for "Simulate prompt... validate output".
-    # I should check the implementation first.
-    pass 
+    assert response.status_code == 200
+    data = response.json()
+    assert "shifts" in data
+    assert isinstance(data["shifts"], list)

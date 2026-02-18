@@ -15,6 +15,19 @@ def test_register_user(client: TestClient):
     assert data["email"] == "testuser@example.com"
     assert "id" in data
 
+def test_register_admin_forbidden(client: TestClient):
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "adminsignup@example.com",
+            "password": "password123",
+            "full_name": "Admin Signup",
+            "role": "admin",
+            "company_id": 1,
+        },
+    )
+    assert response.status_code == 403
+
 def test_login_access_token(client: TestClient):
     # First ensure user exists (might be redundant if order is guaranteed or state refreshed, 
     # but let's register again if db is fresh per module)

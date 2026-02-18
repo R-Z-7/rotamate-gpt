@@ -24,8 +24,9 @@ def read_shifts(
     
     # Tenant Isolation
     if current_user.role != "superadmin":
-        if current_user.company_id:
-            query = query.filter(Shift.company_id == current_user.company_id)
+        if not current_user.company_id:
+            raise HTTPException(status_code=403, detail="User is not assigned to a company")
+        query = query.filter(Shift.company_id == current_user.company_id)
     
     if start_date:
         query = query.filter(Shift.start_time >= start_date)
@@ -55,11 +56,20 @@ def create_shift(
     shift_in: ShiftCreate,
     current_user: User = Depends(deps.get_current_active_admin),
 ) -> Any:
-    # Determine company context
-    company_id = current_user.company_id
-    if current_user.role == "superadmin":
-        # Superadmin logic if needed, for now default to current_user.company_id or None
-        pass
+    employee = db.query(User).filter(User.id == shift_in.employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    if current_user.role != "superadmin":
+        if not current_user.company_id:
+            raise HTTPException(status_code=403, detail="Admin has no company association")
+        if employee.company_id != current_user.company_id:
+            raise HTTPException(status_code=404, detail="Employee not found")
+        company_id = current_user.company_id
+    else:
+        company_id = employee.company_id
+        if not company_id:
+            raise HTTPException(status_code=400, detail="Employee has no company association")
     
     # Check for overlaps
     if check_shift_overlap(db, shift_in.employee_id, shift_in.start_time, shift_in.end_time):
@@ -99,11 +109,20 @@ def update_shift(
     start = shift_in.start_time or shift.start_time
     end = shift_in.end_time or shift.end_time
     emp_id = shift_in.employee_id or shift.employee_id
+
+    employee = db.query(User).filter(User.id == emp_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    if current_user.role != "superadmin":
+        if not current_user.company_id or employee.company_id != current_user.company_id:
+            raise HTTPException(status_code=404, detail="Employee not found")
     
     if check_shift_overlap(db, emp_id, start, end, exclude_shift_id=id):
         raise HTTPException(status_code=400, detail="Shift overlaps with an existing shift")
     
     update_data = shift_in.dict(exclude_unset=True)
+    if current_user.role == "superadmin" and shift_in.employee_id is not None:
+        update_data["company_id"] = employee.company_id
     for field, value in update_data.items():
         setattr(shift, field, value)
     

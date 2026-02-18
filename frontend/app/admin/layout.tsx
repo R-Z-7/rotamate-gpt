@@ -9,10 +9,6 @@ import { cn } from "@/lib/utils";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { DemoBadge } from "@/components/layout/demo-badge";
 
-// ... existing imports
-import { useState } from 'react';
-import { Skeleton } from "@/components/ui/skeleton";
-
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     const { isCollapsed } = useSidebar();
 
@@ -42,23 +38,26 @@ export default function AdminLayout({
 }) {
     const { user, isLoading } = useAuth();
     const router = useRouter();
-    const [isAuthorized, setIsAuthorized] = useState(false);
 
     // Protect Admin Routes
     useEffect(() => {
-        if (!isLoading) {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-            } else if (user && user.role !== 'admin' && user.role !== 'superadmin') {
-                router.push('/employee/schedule');
-            } else {
-                setIsAuthorized(true);
-            }
+        if (isLoading) {
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token || !user) {
+            router.push('/login');
+            return;
+        }
+
+        if (user.role === 'employee') {
+            router.push('/employee/schedule');
         }
     }, [isLoading, user, router]);
 
-    if (isLoading || !isAuthorized) {
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+    if (isLoading || !isAdmin) {
         return (
             <div className="flex h-screen items-center justify-center space-y-4 flex-col">
                 <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />

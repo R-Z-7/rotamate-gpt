@@ -1,13 +1,14 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 import logging
+import anyio
 from app.core.config import settings
 from app.api.v1.api import api_router
 
-from app.db import base
-from app.db.session import engine, SessionLocal
+from app.db.session import SessionLocal
 from app.db.init_db import init_db
 from app.api import deps
 
@@ -17,36 +18,23 @@ from contextlib import asynccontextmanager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-import asyncio
-import anyio
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables and seed data in background to avoid blocking startup
-    async def init_db_task():
-        try:
-            logger.info("Initializing database in background...")
-            # FORCE DROP for re-seeding (DISABLED after final sync)
-            # await anyio.to_thread.run_sync(lambda: base.Base.metadata.drop_all(bind=engine))
-            
-            # Run sync DB operations in a thread pool
-            await anyio.to_thread.run_sync(lambda: base.Base.metadata.create_all(bind=engine))
-            
-            def seed():
-                db = SessionLocal()
-                try:
-                    init_db(db)
-                finally:
-                    db.close()
-            
-            await anyio.to_thread.run_sync(seed)
-            logger.info("Database initialized successfully")
-        except Exception as e:
-            logger.error(f"Error initializing database: {e}")
+    try:
+        logger.info("Initializing database...")
 
-    # Use a background task so we can yield (and start serving requests) fast
-    # but the init will still run
-    asyncio.create_task(init_db_task())
+        def init() -> None:
+            db = SessionLocal()
+            try:
+                init_db(db, seed_demo=settings.ENABLE_DEMO_SEED)
+            finally:
+                db.close()
+
+        await anyio.to_thread.run_sync(init)
+        logger.info("Database initialized successfully")
+    except Exception:
+        logger.exception("Error initializing database")
+        raise
     yield
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
@@ -91,9 +79,6 @@ def health_check(db: Session = Depends(deps.get_db)):
             content={"status": "error", "database": str(e)}
         )
 
-from fastapi import Request
-from fastapi.responses import JSONResponse
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
@@ -106,9 +91,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     response = JSONResponse(
         status_code=500,
         content={
-            "detail": "Internal Server Error", 
-            "error": str(exc),
-            "traceback": stack_trace if not settings.SECRET_KEY.startswith("CHANGEME") else "Redacted"
+            "detail": "Internal Server Error"
         },
     )
     # Origin from request headers

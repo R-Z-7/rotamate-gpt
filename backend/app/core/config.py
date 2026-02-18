@@ -1,5 +1,4 @@
 import os
-from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -12,6 +11,7 @@ class Settings(BaseSettings):
     # Database
     # Default to sqlite for local dev ease if no postgres URL provided
     SQLALCHEMY_DATABASE_URI: str = os.getenv("DATABASE_URL", "sqlite:///./rotamate.db")
+    ENABLE_DEMO_SEED: bool = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
