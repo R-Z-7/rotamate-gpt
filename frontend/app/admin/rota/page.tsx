@@ -10,8 +10,8 @@ import { ShiftFormDrawer } from "@/components/admin/shift-form-drawer"
 import api from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { SmartScheduleModal } from "@/components/admin/smart-schedule-modal"
 import { SuggestScheduleButton } from "@/components/admin/suggest-schedule-button"
+import { AISuggestModal } from "@/app/admin/rota/components/AISuggestModal"
 
 export default function RotaPage() {
     const router = useRouter()
@@ -251,11 +251,12 @@ export default function RotaPage() {
                 initialDate={selectedDate}
             />
 
-            <SmartScheduleModal
+            <AISuggestModal
                 isOpen={isSmartModalOpen}
                 onClose={() => setIsSmartModalOpen(false)}
                 onApply={() => fetchData()}
                 currentDate={currentDate}
+                shifts={shifts}
             />
         </div>
     )

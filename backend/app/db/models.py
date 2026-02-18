@@ -96,3 +96,13 @@ class Notification(Base):
     
     company = relationship("Company", back_populates="notifications")
     user = relationship("User", back_populates="notifications")
+
+
+# Ensure AI scheduling tables are registered in shared metadata.
+from app.models.ai_scoring import (  # noqa: E402,F401
+    AIScoringConfig,
+    AssignmentAuditLog,
+    ContractRule,
+    EmployeePreference,
+    TenantSchedulingSettings,
+)

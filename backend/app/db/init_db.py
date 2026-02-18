@@ -4,6 +4,7 @@ from app.db import base  # noqa: F401
 from app.db.session import SessionLocal, engine
 from app.core.security import get_password_hash
 from app.db.models import User, UserRole, Shift, Company
+from app.models import ai_scoring  # noqa: F401
 from datetime import datetime, timedelta
 import random
 
