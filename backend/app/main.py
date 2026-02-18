@@ -46,6 +46,7 @@ origins = [
     "http://localhost:5173",
     "https://rotamate-lilac.vercel.app",
     "https://rotamate-lilac-git-main-rameesk.vercel.app",
+    "https://rotamate-gpt.vercel.app",
     "https://rotamate.onrender.com",
     "https://rotamate-backend.onrender.com",
 ]
