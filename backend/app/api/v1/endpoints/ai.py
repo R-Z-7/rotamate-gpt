@@ -504,3 +504,18 @@ def get_scoring_optimization(
     scoped_tenant_id = _resolve_tenant_id(current_user, explicit_tenant_id=tenant_id)
     analysis = analyze_feedback(db, scoped_tenant_id)
     return analysis
+
+
+@router.post("/seed-demo", status_code=201)
+def run_seed_demo_data(
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_superuser),
+) -> Any:
+    """
+    Seed AI Demo Data (Employees, Shifts, History).
+    """
+    try:
+        results = seed_ai_demo(db)
+        return {"status": "success", "data": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
