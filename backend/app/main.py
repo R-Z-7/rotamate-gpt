@@ -47,8 +47,9 @@ origins = [
     "https://rotamate-lilac.vercel.app",
     "https://rotamate-lilac-git-main-rameesk.vercel.app",
     "https://rotamate-gpt.vercel.app",
-    "https://rotamate.onrender.com",
+    "https://rotamate-gpt.onrender.com",
     "https://rotamate-backend.onrender.com",
+    "*" # Temporary wildcard to unblock Vercel previews
 ]
 
 app.add_middleware(
@@ -57,7 +58,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_origin_regex=r"https://rotamate.*\.vercel\.app",
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
