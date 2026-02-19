@@ -1,13 +1,16 @@
 import axios from 'axios';
 
-// Use environment variable for production, fallback to local proxy for development
-let baseURL = process.env.NEXT_PUBLIC_API_URL || process.env.VITE_API_URL || '';
+const configuredBaseURL = (process.env.NEXT_PUBLIC_API_URL || process.env.VITE_API_URL || '').trim();
+let baseURL = configuredBaseURL;
 
 // If baseURL is provided via env, ensure it has the /api/v1 prefix if not already present
 if (baseURL && baseURL !== '/api/v1' && !baseURL.endsWith('/api/v1')) {
     baseURL = baseURL.replace(/\/$/, '') + '/api/v1';
 } else if (!baseURL) {
     baseURL = '/api/v1';
+    if (process.env.NODE_ENV === 'production') {
+        console.warn('NEXT_PUBLIC_API_URL is not set; using relative /api/v1 (likely to 404 in production).');
+    }
 }
 
 console.log('API Base URL:', baseURL);

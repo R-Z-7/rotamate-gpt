@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async rewrites() {
+    // Keep local API proxy only for development.
+    if (process.env.NODE_ENV === "production") {
+      return [];
+    }
     return [
       {
         source: '/api/v1/:path*',
