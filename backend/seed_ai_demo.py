@@ -14,6 +14,7 @@ from app.models.ai_scoring import (
     AIFeedbackLoop,
     TenantSchedulingSettings,
     ContractRule,
+    AssignmentAuditLog,
     OPEN_SHIFT_MODE_RECOMMEND_ONLY
 )
 from app.core.security import get_password_hash
@@ -184,24 +185,95 @@ def seed_ai_demo():
         db.commit()
         print(f"📅 Created {created_shifts_count} open shifts for next week")
 
-        # 5. Populate Feedback History
-        print("🧠 Seeding feedback loop data...")
+        # 5. Populate History (Assignments & Feedback)
+        print("🧠 Seeding historical data (Assignments & Feedback)...")
         alice = employees["Alice Expert"]
         bob = employees["Bob Busy"]
+        charlie = employees["Charlie Junior"]
         
-        # Avoid duplicate feedback
-        fb_count = db.query(AIFeedbackLoop).filter(AIFeedbackLoop.tenant_id == company.id).count()
-        if fb_count < 10:
-            for i in range(10):
-                fb = AIFeedbackLoop(
+        # Create shifts for the last 4 weeks to simulate history
+        history_start = datetime.now().date() - timedelta(weeks=4)
+        
+        # We need a mix of:
+        # 1. Successful AI Assignments (Audit Log only)
+        # 2. Overridden Assignments (Audit Log + Feedback Loop)
+        
+        for i in range(20): # 20 historical shifts
+            shift_date = history_start + timedelta(days=i)
+            start_dt = datetime.combine(shift_date, datetime.min.time().replace(hour=8))
+            end_dt = datetime.combine(shift_date, datetime.min.time().replace(hour=16))
+            
+            # Create the PAST shift
+            past_shift = Shift(
+                company_id=company.id,
+                start_time=start_dt,
+                end_time=end_dt,
+                role_type="Senior Nurse",
+                status="assigned",
+                employee_id=bob.id # Assigned to Bob eventually
+            )
+            db.add(past_shift)
+            db.commit() # Commit to get ID
+            db.refresh(past_shift)
+            
+            # Scenario A: AI assigned Alice successfully (No override) - First 10
+            if i < 10:
+                past_shift.employee_id = alice.id
+                db.add(past_shift)
+                
+                # Log the AI assignment
+                log = AssignmentAuditLog(
                     tenant_id=company.id,
-                    shift_id=i+1000, 
-                    original_employee_id=alice.id,
-                    final_employee_id=bob.id,
-                    change_reason="MANUAL_OVERRIDE",
-                    created_at=datetime.utcnow() - timedelta(days=random.randint(1, 20))
+                    shift_id=past_shift.id,
+                    employee_id=alice.id,
+                    action="AI_ASSIGNMENT_APPLIED",
+                    details="AI confidence: 0.95",
+                    created_by_user_id=None, # System/AI
+                    created_at=shift_date
                 )
-                db.add(fb)
+                db.add(log)
+                
+            # Scenario B: AI suggested Alice, but Admin overrode to Bob - Last 10
+            else:
+                past_shift.employee_id = bob.id
+                db.add(past_shift)
+                
+                # 1. Log the AI suggestion (optional, but good for tracking what AI *wanted*)
+                # Typically we log the *application*. If user applies then changes, or changes then applies.
+                # Let's say AI applied Alice, then Admin changed to Bob.
+                log_ai = AssignmentAuditLog(
+                    tenant_id=company.id,
+                    shift_id=past_shift.id,
+                    employee_id=alice.id,
+                    action="AI_ASSIGNMENT_APPLIED",
+                    created_at=shift_date
+                )
+                db.add(log_ai)
+                
+                # 2. Log the Override
+                log_override = AssignmentAuditLog(
+                    tenant_id=company.id,
+                    shift_id=past_shift.id,
+                    employee_id=bob.id,
+                    action="MANUAL_OVERRIDE",
+                    created_at=shift_date + timedelta(minutes=5)
+                )
+                db.add(log_override)
+                
+                # 3. Create Feedback Loop Entry
+                # Only if not exists
+                fb_exists = db.query(AIFeedbackLoop).filter(AIFeedbackLoop.shift_id == past_shift.id).first()
+                if not fb_exists:
+                    fb = AIFeedbackLoop(
+                        tenant_id=company.id,
+                        shift_id=past_shift.id, 
+                        original_employee_id=alice.id,
+                        final_employee_id=bob.id,
+                        change_reason="MANUAL_OVERRIDE",
+                        created_at=shift_date + timedelta(minutes=5)
+                    )
+                    db.add(fb)
+            
             db.commit()
         
         print("✅ Demo Data Seeding Complete!")
