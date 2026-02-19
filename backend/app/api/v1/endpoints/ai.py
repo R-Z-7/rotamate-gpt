@@ -271,7 +271,7 @@ def preview_assignments(
     scoring_config = get_or_default_scoring_config(
         db,
         scoped_tenant_id,
-        create_if_missing=False,
+        create_if_missing=True,
     )
     contract_rule = get_or_default_contract_rule(db, scoped_tenant_id)
     tenant_settings = get_or_default_tenant_settings(db, scoped_tenant_id)
@@ -350,6 +350,8 @@ def apply_assignments(
         raise HTTPException(status_code=400, detail="Only apply_target=DRAFT is supported")
 
     scoped_tenant_id = _resolve_tenant_id(current_user, explicit_tenant_id=tenant_id)
+    week_start_dt = datetime.combine(request.week_start, time.min)
+    week_end_dt = week_start_dt + timedelta(days=7)
     employees_by_id = {
         employee.id: employee
         for employee in (
@@ -384,6 +386,16 @@ def apply_assignments(
                     shift_id=item.shift_id,
                     employee_id=item.employee_id,
                     reasons=["SHIFT_NOT_FOUND"],
+                )
+            )
+            continue
+
+        if shift.end_time <= week_start_dt or shift.start_time >= week_end_dt:
+            rejected.append(
+                AIAssignmentRejected(
+                    shift_id=item.shift_id,
+                    employee_id=item.employee_id,
+                    reasons=["SHIFT_OUTSIDE_TARGET_WEEK"],
                 )
             )
             continue
