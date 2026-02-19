@@ -27,7 +27,9 @@ from app.schemas.ai import (
     SuggestedShift,
 )
 from app.services.ai_scoring_service import (
+    analyze_feedback,
     build_fairness_summary,
+    capture_feedback,
     create_assignment_audit_log,
     get_or_default_contract_rule,
     get_or_default_scoring_config,
@@ -429,6 +431,52 @@ def apply_assignments(
             )
             continue
 
+        # --- Feedback Capture Logic ---
+        # 1. Score all eligible candidates for this shift to find who AI *would* have picked.
+        #    (We need to fetch all employees again to do this properly, or at least enough to know top rank)
+        #    Optimization: For now, we'll fetch all active employees for the tenant.
+        #    In a high-scale scenario, we might want to optimize this or trust the frontend to send "original_suggestion".
+        #    But for reliability, backend recalculation is safer.
+        all_employees = (
+            db.query(models.User)
+            .filter(
+                models.User.company_id == scoped_tenant_id,
+                models.User.role == "employee",
+                models.User.is_active == True,
+            )
+            .all()
+        )
+        
+        # We need scoring config
+        scoring_config = get_or_default_scoring_config(db, scoped_tenant_id, create_if_missing=True)
+        
+        # Filter and score all
+        all_eligible, _ = hard_constraint_filter(
+            db,
+            shift=shift,
+            employees=all_employees,
+            tenant_id=scoped_tenant_id,
+            contract_rule=contract_rule,
+            tenant_settings=tenant_settings,
+        )
+        scored_all = score_candidates(shift, all_eligible, scoring_config)
+        
+        original_employee_id = None
+        if scored_all:
+            original_employee_id = int(scored_all[0]["employee_id"])
+
+        if original_employee_id and original_employee_id != employee.id:
+            # The user picked someone who is NOT the top AI choice.
+            capture_feedback(
+                db,
+                tenant_id=scoped_tenant_id,
+                shift_id=shift.id,
+                original_employee_id=original_employee_id,
+                final_employee_id=employee.id,
+                reason="MANUAL_OVERRIDE",
+            )
+        # -----------------------------
+
         shift.employee_id = employee.id
         shift.status = "draft"
         db.add(shift)
@@ -445,3 +493,14 @@ def apply_assignments(
 
     db.commit()
     return AIAssignApplyResponse(applied=applied, rejected=rejected)
+
+
+@router.get("/scoring/optimization", response_model=Dict[str, Any])
+def get_scoring_optimization(
+    tenant_id: Optional[int] = Query(default=None),
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_admin),
+) -> Any:
+    scoped_tenant_id = _resolve_tenant_id(current_user, explicit_tenant_id=tenant_id)
+    analysis = analyze_feedback(db, scoped_tenant_id)
+    return analysis

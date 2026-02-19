@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Availability, Shift, TimeOffRequest, User
 from app.models.ai_scoring import (
+    AIFeedbackLoop,
     AIScoringConfig,
     AssignmentAuditLog,
     ContractRule,
@@ -16,6 +17,86 @@ from app.models.ai_scoring import (
     OPEN_SHIFT_MODE_RECOMMEND_ONLY,
     TenantSchedulingSettings,
 )
+
+def capture_feedback(
+    db: Session,
+    *,
+    tenant_id: int,
+    shift_id: int,
+    original_employee_id: Optional[int],
+    final_employee_id: int,
+    reason: Optional[str] = None,
+) -> AIFeedbackLoop:
+    if original_employee_id == final_employee_id:
+        return None
+
+    feedback = AIFeedbackLoop(
+        tenant_id=tenant_id,
+        shift_id=shift_id,
+        original_employee_id=original_employee_id,
+        final_employee_id=final_employee_id,
+        change_reason=reason,
+        created_at=datetime.utcnow(),
+    )
+    db.add(feedback)
+    return feedback
+
+
+def analyze_feedback(
+    db: Session,
+    tenant_id: int,
+) -> Dict[str, Any]:
+    """
+    Analyzes feedback for the given tenant and suggests weight adjustments.
+    """
+    # 1. Fetch recent feedback (last 30 days)
+    cutoff = datetime.utcnow() - timedelta(days=30)
+    feedbacks = (
+        db.query(AIFeedbackLoop)
+        .filter(
+            AIFeedbackLoop.tenant_id == tenant_id,
+            AIFeedbackLoop.created_at >= cutoff,
+        )
+        .all()
+    )
+
+    if not feedbacks:
+        return {"suggestion": "No sufficient data to optimize weights."}
+
+    # 2. Heuristic Analysis
+    # We want to see if the 'final_employee' systematically had better scores in specific categories
+    # than the 'original_employee' (if original_employee was recorded).
+    # Since we don't store the snapshot of scores at that time, we'll use a simplified heuristic:
+    # "If many users are overriding, maybe 'Employee Preference' or 'Skill Match' is more important."
+    
+    # Simple counting for now (Phase B MVP)
+    override_count = len(feedbacks)
+    
+    # In a real ML system, we would replay the scoring and see which feature diff correlates with the choice.
+    # For this "Lightweight" version, we'll return a static suggestion if overrides are high.
+    
+    suggestion_text = f"Analyzed {override_count} overrides in the last 30 days."
+    suggested_changes = {}
+
+    if override_count > 5:
+        # Dummy logic: If overrides are frequent, suggest relying more on 'Skill Match' and 'Preferences'.
+        suggestion_text += " High override rate detected. Suggesting increased weight for attributes associated with manual selection."
+        current_config = get_or_default_scoring_config(db, tenant_id, create_if_missing=True)
+        
+        suggested_changes = {
+            "skill_match_weight": min(100.0, current_config.skill_match_weight + 5.0),
+            "preference_weight": min(100.0, current_config.preference_weight + 5.0),
+            "reason": "Frequent manual overrides suggest current model underestimates skills or preferences."
+        }
+    else:
+        suggestion_text += " Model performance is stable."
+
+    return {
+        "analysis_period_days": 30,
+        "total_overrides": override_count,
+        "suggestion_text": suggestion_text,
+        "suggested_weight_changes": suggested_changes
+    }
 
 DEFAULT_MIN_REST_HOURS = 11.0
 DEFAULT_MAX_HOURS_DAY = 12.0

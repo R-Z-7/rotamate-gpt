@@ -77,3 +77,15 @@ class AssignmentAuditLog(Base):
     details = Column(String, nullable=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class AIFeedbackLoop(Base):
+    __tablename__ = "ai_feedback_loop"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
+    shift_id = Column(Integer, ForeignKey("shifts.id"), nullable=False, index=True)
+    original_employee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    final_employee_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    change_reason = Column(String, nullable=True)  # e.g., SKILL_ISSUE, PREFERENCE
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

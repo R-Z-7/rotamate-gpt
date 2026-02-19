@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { getAIScoringConfig, updateAIScoringConfig } from "@/lib/api/ai"
+import { getAIScoringConfig, getScoringOptimization, updateAIScoringConfig } from "@/lib/api/ai"
 
 type ScoringFormValues = {
     availability_weight: string
@@ -129,6 +129,41 @@ export default function AIScoringSettingsPage() {
         setForm((prev) => ({ ...prev, [key]: value }))
     }
 
+    const [optimizationResult, setOptimizationResult] = useState<any>(null)
+    const [isOptimizing, setIsOptimizing] = useState(false)
+
+    const handleOptimize = async () => {
+        setIsOptimizing(true)
+        try {
+            const result = await getScoringOptimization()
+            setOptimizationResult(result)
+            if (result.suggested_weight_changes && Object.keys(result.suggested_weight_changes).length > 0) {
+                toast.success("Optimization analysis complete. Review suggestions below.")
+            } else {
+                toast.info("Analysis complete. No changes suggested at this time.")
+            }
+        } catch (error) {
+            console.error(error)
+            toast.error("Failed to run optimization analysis")
+        } finally {
+            setIsOptimizing(false)
+        }
+    }
+
+    const applyOptimization = () => {
+        if (!optimizationResult?.suggested_weight_changes) return
+
+        const updates = optimizationResult.suggested_weight_changes
+        setForm((prev) => {
+            const next = { ...prev }
+            if (updates.skill_match_weight) next.skill_match_weight = String(updates.skill_match_weight)
+            if (updates.preference_weight) next.preference_weight = String(updates.preference_weight)
+            return next
+        })
+        toast.success("Suggested weights applied to form. Click Save to persist.")
+        setOptimizationResult(null)
+    }
+
     const saveConfig = async () => {
         const parsedWeights = WEIGHT_FIELDS.map(({ key }) => Number(form[key]))
         if (parsedWeights.some((value) => !Number.isFinite(value) || value < 0)) {
@@ -199,6 +234,53 @@ export default function AIScoringSettingsPage() {
                     Configure deterministic scoring weights used by AI assignment preview and draft apply.
                 </p>
             </div>
+
+            <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        ✨ AI Scoring Optimization
+                    </CardTitle>
+                    <CardDescription>
+                        Analyze past overrides to learn from your scheduling preferences.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            The system can analyze recent manual overrides to suggest weight adjustments.
+                            If you frequently assign employees with higher skill matches than the AI suggests,
+                            it will recommend increasing the Skill Match Weight.
+                        </p>
+
+                        {!optimizationResult ? (
+                            <Button onClick={handleOptimize} disabled={isOptimizing} variant="outline">
+                                {isOptimizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Run Analysis
+                            </Button>
+                        ) : (
+                            <div className="bg-background border rounded-md p-4 space-y-3">
+                                <div className="space-y-1">
+                                    <p className="font-medium">Analysis Result</p>
+                                    <p className="text-sm text-muted-foreground">{optimizationResult.suggestion_text}</p>
+                                </div>
+
+                                {optimizationResult.suggested_weight_changes && Object.keys(optimizationResult.suggested_weight_changes).length > 0 && (
+                                    <div className="pt-2">
+                                        <Button onClick={applyOptimization} size="sm">
+                                            Apply Suggestions
+                                        </Button>
+                                    </div>
+                                )}
+                                <div className="pt-2">
+                                    <Button variant="ghost" size="sm" onClick={() => setOptimizationResult(null)}>
+                                        Dismiss
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>

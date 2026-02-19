@@ -125,3 +125,14 @@ export async function updateAIScoringConfig(
     const res = await api.put("/settings/ai-scoring", payload)
     return res.data
 }
+export interface AIOptimizationResponse {
+    analysis_period_days: number;
+    total_overrides: number;
+    suggestion_text: string;
+    suggested_weight_changes: Record<string, any>;
+}
+
+export const getScoringOptimization = async (): Promise<AIOptimizationResponse> => {
+    const { data } = await api.get("/ai/scoring/optimization");
+    return data;
+};
