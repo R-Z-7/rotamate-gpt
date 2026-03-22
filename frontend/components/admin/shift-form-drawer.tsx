@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DatePicker } from "@/components/ui/date-picker"
 import { TimePicker } from "@/components/ui/time-picker"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertTriangle, CheckCircle } from "lucide-react"
+import api from "@/lib/api"
+import { toast } from "sonner"
 
 type ShiftFormProps = {
     isOpen: boolean
@@ -16,6 +20,7 @@ type ShiftFormProps = {
     initialData?: any
     initialDate?: Date
     employees: any[]
+    onRefresh?: () => void
 }
 
 export function ShiftFormDrawer({
@@ -26,6 +31,7 @@ export function ShiftFormDrawer({
     initialData,
     initialDate,
     employees,
+    onRefresh,
 }: ShiftFormProps) {
     const [formData, setFormData] = useState({
         employeeId: "",
@@ -33,17 +39,24 @@ export function ShiftFormDrawer({
         startTime: "09:00",
         endTime: "17:00",
         role: "Nurse",
+        status: "assigned",
     })
+    
+    const [requiresOverride, setRequiresOverride] = useState(false)
+    const [overrideReason, setOverrideReason] = useState("")
 
     useEffect(() => {
         if (initialData) {
             setFormData({
-                employeeId: initialData.employeeId.toString(),
+                employeeId: initialData.employeeId ? initialData.employeeId.toString() : "",
                 date: new Date(initialData.startTime),
                 startTime: format(new Date(initialData.startTime), "HH:mm"),
                 endTime: format(new Date(initialData.endTime), "HH:mm"),
                 role: initialData.role,
+                status: initialData.status || "assigned",
             })
+            setRequiresOverride(false)
+            setOverrideReason("")
         } else {
             setFormData({
                 employeeId: "",
@@ -51,14 +64,16 @@ export function ShiftFormDrawer({
                 startTime: "09:00",
                 endTime: "17:00",
                 role: "Nurse",
+                status: "assigned",
             })
+            setRequiresOverride(false)
+            setOverrideReason("")
         }
     }, [initialData, isOpen, initialDate])
 
-    const handleSubmit = () => {
-        if (!formData.date || !formData.startTime || !formData.endTime || !formData.employeeId) {
-            return
-        }
+    const handleSubmit = async () => {
+        if (!formData.date || !formData.startTime || !formData.endTime) return
+        if (formData.status !== "open" && !formData.employeeId) return
 
         const startDateTime = new Date(formData.date)
         const [startHours, startMinutes] = formData.startTime.split(":")
@@ -68,19 +83,39 @@ export function ShiftFormDrawer({
         const [endHours, endMinutes] = formData.endTime.split(":")
         endDateTime.setHours(parseInt(endHours), parseInt(endMinutes))
 
-        // Handle overnight shifts
         if (endDateTime < startDateTime) {
             endDateTime.setDate(endDateTime.getDate() + 1)
         }
 
-        onSave({
-            employee_id: parseInt(formData.employeeId),
-            start_time: startDateTime.toISOString(),
-            end_time: endDateTime.toISOString(),
-            role_type: formData.role,
-        })
+        try {
+            await onSave({
+                employee_id: formData.status === "open" ? undefined : parseInt(formData.employeeId),
+                start_time: startDateTime.toISOString(),
+                end_time: endDateTime.toISOString(),
+                role_type: formData.role,
+                status: formData.status,
+                ...(requiresOverride && overrideReason ? { override_reason: overrideReason } : {}),
+            })
+            setRequiresOverride(false)
+            setOverrideReason("")
+        } catch (err: any) {
+            const detail = err.response?.data?.detail || ""
+            if (detail.includes("override_reason")) {
+                setRequiresOverride(true)
+            }
+        }
+    }
 
-        onClose()
+    const handleResolveOverride = async () => {
+        if (!initialData) return
+        try {
+            await api.post(`/shifts/${initialData.id}/override/resolve`, { status: "resolved" })
+            toast.success("Override resolved")
+            if (onRefresh) onRefresh()
+            onClose()
+        } catch (err: any) {
+            toast.error(err.response?.data?.detail || "Failed to resolve override")
+        }
     }
 
     return (
@@ -94,23 +129,42 @@ export function ShiftFormDrawer({
                     </DrawerHeader>
                     <div className="p-4 space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Employee</label>
+                            <label className="text-sm font-medium">Status</label>
                             <Select
-                                value={formData.employeeId}
-                                onValueChange={(val) => setFormData({ ...formData, employeeId: val })}
+                                value={formData.status}
+                                onValueChange={(val) => setFormData({ ...formData, status: val })}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select employee" />
+                                    <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {employees.map((emp) => (
-                                        <SelectItem key={emp.id} value={emp.id.toString()}>
-                                            {emp.full_name}
-                                        </SelectItem>
-                                    ))}
+                                    <SelectItem value="assigned">Assigned</SelectItem>
+                                    <SelectItem value="open">Open Shift</SelectItem>
+                                    <SelectItem value="draft">Draft</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {formData.status !== "open" && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Employee</label>
+                                <Select
+                                    value={formData.employeeId}
+                                    onValueChange={(val) => setFormData({ ...formData, employeeId: val })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select employee" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {employees.map((emp) => (
+                                            <SelectItem key={emp.id} value={emp.id.toString()}>
+                                                {emp.full_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Date</label>
@@ -153,6 +207,35 @@ export function ShiftFormDrawer({
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {requiresOverride && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-destructive">Override Reason Required</label>
+                                <Input
+                                    value={overrideReason}
+                                    onChange={(e) => setOverrideReason(e.target.value)}
+                                    placeholder="Employee is unavailable. Enter reason..."
+                                    className="border-destructive"
+                                />
+                            </div>
+                        )}
+
+                        {initialData?.overrideRequest && 
+                         (initialData.overrideRequest.status === 'pending' || initialData.overrideRequest.status === 'change_requested') && (
+                            <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200">
+                                <AlertTriangle className="h-4 w-4 stroke-amber-600 dark:stroke-amber-400" />
+                                <AlertTitle>Employee Override Response: {initialData.overrideRequest.status.replace("_", " ")}</AlertTitle>
+                                <AlertDescription>
+                                    <p className="mb-2 text-sm text-amber-800 dark:text-amber-300">
+                                        The employee has responded to this shift override. Please resolve to finalize the placement.
+                                    </p>
+                                    <Button size="sm" onClick={handleResolveOverride} className="bg-amber-600 hover:bg-amber-700 text-white">
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Mark as Resolved
+                                    </Button>
+                                </AlertDescription>
+                            </Alert>
+                        )}
                     </div>
                     <DrawerFooter>
                         <Button onClick={handleSubmit}>Save Shift</Button>

@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import api from "@/lib/api"
-import { Calendar, Clock, MapPin, List, LayoutGrid } from "lucide-react"
+import { Calendar, Clock, MapPin, List, LayoutGrid, AlertTriangle } from "lucide-react"
 import { motion } from "framer-motion"
 import { format, startOfWeek, addWeeks, subWeeks } from "date-fns"
 import { Button } from "@/components/ui/button"
@@ -37,7 +38,8 @@ export default function MySchedulePage() {
                 startTime: s.start_time,
                 endTime: s.end_time,
                 role: s.role_type || "Shift", // Mapping
-                status: s.status
+                status: s.status,
+                overrideRequest: s.override_request
             }))
 
             setShifts(formatted)
@@ -58,6 +60,15 @@ export default function MySchedulePage() {
                 return 'danger'
             default:
                 return 'default'
+        }
+    }
+
+    const handleOverrideResponse = async (shiftId: number, status: string) => {
+        try {
+            await api.post(`/shifts/${shiftId}/override/resolve`, { status })
+            fetchShifts()
+        } catch (err) {
+            console.error("Failed to respond to override", err)
         }
     }
 
@@ -156,6 +167,19 @@ export default function MySchedulePage() {
                                                     </span>
                                                 </div>
                                             </div>
+                                            {shift.overrideRequest && shift.overrideRequest.status === 'pending' && (
+                                                <Alert variant="destructive" className="mt-4">
+                                                    <AlertTriangle className="h-4 w-4" />
+                                                    <AlertTitle>Availability Override</AlertTitle>
+                                                    <AlertDescription>
+                                                        <p className="mb-2 text-sm">{shift.overrideRequest.reason}</p>
+                                                        <div className="flex gap-2">
+                                                            <Button size="sm" onClick={() => handleOverrideResponse(shift.id, 'acknowledged')}>Acknowledge</Button>
+                                                            <Button size="sm" variant="outline" onClick={() => handleOverrideResponse(shift.id, 'change_requested')}>Request Change</Button>
+                                                        </div>
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </motion.div>

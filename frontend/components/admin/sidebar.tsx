@@ -12,7 +12,9 @@ import {
     LogOut,
     FileText,
     Menu,
-    X
+    X,
+    Zap,
+    ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -37,6 +39,8 @@ export function Sidebar({ mobile }: { mobile?: boolean }) {
         { title: "Time Off Requests", href: "/admin/requests", icon: Clock },
         { title: "Reports", href: "/admin/reports", icon: FileText },
         { title: "AI Scoring", href: "/admin/settings/ai-scoring", icon: Settings },
+        { title: "Automation", href: "/admin/settings/automation", icon: Zap },
+        { title: "Contract Rules", href: "/admin/settings/policies", icon: ShieldAlert },
         { title: "Settings", href: "/settings", icon: Settings },
     ];
 

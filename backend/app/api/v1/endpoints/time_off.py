@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.db.models import TimeOffRequest, User
 from app.schemas.time_off import TimeOffRequest as TimeOffRequestSchema, TimeOffRequestCreate, TimeOffRequestUpdate
+from app.services.notification_service import create_notification
 
 router = APIRouter()
 
@@ -66,4 +67,14 @@ def update_time_off_status(
     db.add(request)
     db.commit()
     db.refresh(request)
+    
+    create_notification(
+        db=db,
+        user_id=request.employee_id,
+        company_id=request.company_id,
+        title=f"Time Off Request {status_update.status.capitalize()}",
+        description=f"Your time off request from {request.start_date.strftime('%Y-%m-%d')} to {request.end_date.strftime('%Y-%m-%d')} has been {status_update.status}.",
+        notif_type="success" if status_update.status == "approved" else "info"
+    )
+    
     return request

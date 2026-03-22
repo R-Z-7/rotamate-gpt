@@ -9,9 +9,10 @@ api_router.include_router(availability.router, prefix="/availability", tags=["av
 api_router.include_router(time_off.router, prefix="/time-off", tags=["time-off"])
 api_router.include_router(ai.router, prefix="/ai", tags=["ai"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
-from app.api.v1.endpoints import analytics, notifications
+from app.api.v1.endpoints import analytics, notifications, automation
 api_router.include_router(analytics.router, prefix="/dashboard-metrics", tags=["analytics"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(automation.router, prefix="/automation", tags=["automation"])
 
 from app.api.v1.endpoints import superadmin
 api_router.include_router(superadmin.router, prefix="/superadmin", tags=["superadmin"])

@@ -13,6 +13,29 @@ from app.db.init_db import init_db
 from app.api import deps
 
 from contextlib import asynccontextmanager
+import asyncio
+from app.services.automation_service import run_automation_for_tenant
+from app.db.models import Company
+
+async def automation_loop():
+    while True:
+        try:
+            logger.info("Running automation jobs check...")
+            def run_jobs() -> None:
+                from app.db.session import SessionLocal
+                db = SessionLocal()
+                try:
+                    companies = db.query(Company).all()
+                    for c in companies:
+                        run_automation_for_tenant(db, c.id)
+                finally:
+                    db.close()
+            await anyio.to_thread.run_sync(run_jobs)
+            logger.info("Automation jobs check completed")
+        except Exception as e:
+            logger.error(f"Error in automation loop: {e}")
+        # Run every 10 minutes
+        await asyncio.sleep(600)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    task = asyncio.create_task(automation_loop())
     try:
         logger.info("Initializing database...")
 
@@ -36,6 +60,7 @@ async def lifespan(app: FastAPI):
         logger.exception("Error initializing database")
         raise
     yield
+    task.cancel()
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 

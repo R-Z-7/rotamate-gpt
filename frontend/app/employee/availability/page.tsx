@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Save, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar, Save, ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react"
 import api from "@/lib/api"
 import { toast } from "sonner"
 import { format, addDays, startOfWeek } from "date-fns"
@@ -13,6 +13,7 @@ type AvailabilityRecord = {
     id?: number
     date: string
     is_available: boolean
+    is_recurring?: boolean
     reason?: string
 }
 
@@ -38,6 +39,7 @@ export default function AvailabilityPage() {
                     id: record.id,
                     date: record.date,
                     is_available: record.is_available,
+                    is_recurring: record.is_recurring,
                     reason: record.reason,
                 }
             })
@@ -70,6 +72,23 @@ export default function AvailabilityPage() {
         })
     }
 
+    const toggleRecurring = (e: React.MouseEvent, date: Date) => {
+        e.stopPropagation() // prevent toggling availability
+        const dateKey = format(date, "yyyy-MM-dd")
+        const current = availability[dateKey]
+
+        // if there's no record, we assume it's available by default and the user wants to make it recurring
+        setAvailability({
+            ...availability,
+            [dateKey]: {
+                ...current,
+                date: date.toISOString(),
+                is_available: current ? current.is_available : true,
+                is_recurring: !current?.is_recurring,
+            },
+        })
+    }
+
     const handleSave = async () => {
         setSaving(true)
         try {
@@ -78,13 +97,19 @@ export default function AvailabilityPage() {
                     // Update existing
                     return api.put(`/availability/${record.id}`, {
                         is_available: record.is_available,
+                        is_recurring: record.is_recurring || false,
                         reason: record.reason,
                     })
                 } else {
                     // Create new
+                    // Map js day index (0=Sun) to python day index (0=Mon)
+                    const jsDay = new Date(record.date).getDay()
+                    const pyDay = jsDay === 0 ? 6 : jsDay - 1
                     return api.post("/availability/", {
-                        date: record.date,
+                        date: format(new Date(record.date), "yyyy-MM-dd"),
                         is_available: record.is_available,
+                        is_recurring: record.is_recurring || false,
+                        day_of_week: record.is_recurring ? pyDay : null,
                         reason: record.reason,
                     })
                 }
@@ -174,6 +199,10 @@ export default function AvailabilityPage() {
                                 <div className="h-3 w-3 rounded-full bg-destructive/10 border border-destructive" />
                                 <span className="text-muted-foreground">Unavailable</span>
                             </div>
+                            <div className="flex items-center gap-2 ml-4">
+                                <RefreshCcw className="h-4 w-4 text-emerald-600" />
+                                <span className="text-muted-foreground">Repeats Weekly</span>
+                            </div>
                         </div>
                     </CardTitle>
                 </CardHeader>
@@ -193,6 +222,7 @@ export default function AvailabilityPage() {
                                 const dateKey = format(day, "yyyy-MM-dd")
                                 const record = availability[dateKey]
                                 const isAvailable = record?.is_available ?? true
+                                const isRecurring = record?.is_recurring ?? false
                                 const isPast = day < new Date(new Date().setHours(0, 0, 0, 0))
 
                                 return (
@@ -213,11 +243,25 @@ export default function AvailabilityPage() {
                                             <div className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                                                 {format(day, "EEE")}
                                             </div>
-                                            {isPast && (
-                                                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">
-                                                    PAST
-                                                </span>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {!isPast && (
+                                                    <button 
+                                                        onClick={(e) => toggleRecurring(e, day)}
+                                                        className={cn(
+                                                            "p-1.5 rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10",
+                                                            isRecurring ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/50"
+                                                        )}
+                                                        title="Toggle Weekly Recurrence"
+                                                    >
+                                                        <RefreshCcw className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {isPast && (
+                                                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-medium">
+                                                        PAST
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="text-3xl font-bold">

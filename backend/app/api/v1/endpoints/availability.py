@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.db.models import Availability, User
-from app.schemas.availability import Availability as AvailabilitySchema, AvailabilityCreate
+from app.schemas.availability import Availability as AvailabilitySchema, AvailabilityCreate, AvailabilityUpdate
 
 router = APIRouter()
 
@@ -41,8 +41,58 @@ def create_availability(
         date=availability_in.date,
         is_available=availability_in.is_available,
         reason=availability_in.reason,
+        is_recurring=availability_in.is_recurring,
+        day_of_week=availability_in.day_of_week,
     )
     db.add(availability)
     db.commit()
     db.refresh(availability)
+    return availability
+
+@router.put("/{id}", response_model=AvailabilitySchema)
+def update_availability(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    availability_in: AvailabilityUpdate,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    availability = db.query(Availability).filter(Availability.id == id).first()
+    if not availability:
+        raise HTTPException(status_code=404, detail="Availability not found")
+        
+    if current_user.role == "employee" and availability.employee_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+    if current_user.role == "admin" and availability.company_id != current_user.company_id:
+        raise HTTPException(status_code=404, detail="Availability not found")
+        
+    update_data = availability_in.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(availability, field, value)
+        
+    db.add(availability)
+    db.commit()
+    db.refresh(availability)
+    return availability
+
+@router.delete("/{id}", response_model=AvailabilitySchema)
+def delete_availability(
+    *,
+    db: Session = Depends(deps.get_db),
+    id: int,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    availability = db.query(Availability).filter(Availability.id == id).first()
+    if not availability:
+        raise HTTPException(status_code=404, detail="Availability not found")
+        
+    if current_user.role == "employee" and availability.employee_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+    if current_user.role == "admin" and availability.company_id != current_user.company_id:
+        raise HTTPException(status_code=404, detail="Availability not found")
+        
+    db.delete(availability)
+    db.commit()
     return availability

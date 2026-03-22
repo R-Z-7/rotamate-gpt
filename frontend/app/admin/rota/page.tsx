@@ -51,6 +51,8 @@ export default function RotaPage() {
                 startTime: shift.start_time,
                 endTime: shift.end_time,
                 role: shift.role_type || "Nurse",
+                status: shift.status,
+                overrideRequest: shift.override_request,
             }))
 
             setShifts(formattedShifts)
@@ -152,6 +154,7 @@ export default function RotaPage() {
             fetchData()
         } catch (err: any) {
             toast.error(err.response?.data?.detail || "Failed to save shift")
+            throw err
         }
     }
 

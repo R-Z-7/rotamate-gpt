@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.db.models import Availability, Shift, TimeOffRequest, User
@@ -221,8 +222,10 @@ def _availability_state_for_shift(
         .filter(
             Availability.company_id == tenant_id,
             Availability.employee_id == employee_id,
-            Availability.date >= start_window,
-            Availability.date < end_window,
+            or_(
+                (Availability.date >= start_window) & (Availability.date < end_window),
+                (Availability.is_recurring == True) & (Availability.day_of_week == shift.start_time.weekday())
+            )
         )
         .all()
     )

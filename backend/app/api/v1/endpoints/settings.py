@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.db import models
+from app.models.ai_scoring import ContractRule, EmployeePreference
 from app.schemas.ai import AIScoringConfigRead, AIScoringConfigUpdate
+from app.schemas.settings import ContractRuleInDB, ContractRuleUpdate, EmployeePreferenceInDB, EmployeePreferenceUpdate
 from app.services.ai_scoring_service import get_or_default_scoring_config, update_scoring_config
 
 router = APIRouter()
@@ -91,3 +93,95 @@ def put_ai_scoring_config(
 
     config = update_scoring_config(db, scoped_tenant_id, update_data)
     return _serialize_scoring_config(config)
+
+@router.get("/contract-rules", response_model=ContractRuleInDB)
+def get_contract_rules(
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_admin),
+) -> Any:
+    tenant_id = _resolve_tenant_id(current_user)
+    rule = db.query(ContractRule).filter(ContractRule.tenant_id == tenant_id).first()
+    if not rule:
+        rule = ContractRule(tenant_id=tenant_id)
+        db.add(rule)
+        db.commit()
+        db.refresh(rule)
+    return rule
+
+@router.put("/contract-rules", response_model=ContractRuleInDB)
+def update_contract_rules(
+    *,
+    db: Session = Depends(deps.get_db),
+    payload: ContractRuleUpdate,
+    current_user: models.User = Depends(deps.get_current_active_admin),
+) -> Any:
+    tenant_id = _resolve_tenant_id(current_user)
+    rule = db.query(ContractRule).filter(ContractRule.tenant_id == tenant_id).first()
+    if not rule:
+        rule = ContractRule(tenant_id=tenant_id)
+        db.add(rule)
+        
+    update_data = payload.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(rule, field, value)
+        
+    db.commit()
+    db.refresh(rule)
+    return rule
+
+@router.get("/employee-preferences/{employee_id}", response_model=EmployeePreferenceInDB)
+def get_employee_preferences(
+    employee_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    # Admin can view any in their company, employee can view their own
+    if current_user.role == "employee" and current_user.id != employee_id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+    employee = db.query(models.User).filter(models.User.id == employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+        
+    if current_user.role != "superadmin" and current_user.company_id != employee.company_id:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    tenant_id = employee.company_id
+    pref = db.query(EmployeePreference).filter(EmployeePreference.employee_id == employee_id).first()
+    if not pref:
+        pref = EmployeePreference(tenant_id=tenant_id, employee_id=employee_id)
+        db.add(pref)
+        db.commit()
+        db.refresh(pref)
+    return pref
+
+@router.put("/employee-preferences/{employee_id}", response_model=EmployeePreferenceInDB)
+def update_employee_preferences(
+    *,
+    employee_id: int,
+    payload: EmployeePreferenceUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    if current_user.role == "employee" and current_user.id != employee_id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+        
+    employee = db.query(models.User).filter(models.User.id == employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+        
+    if current_user.role != "superadmin" and current_user.company_id != employee.company_id:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    pref = db.query(EmployeePreference).filter(EmployeePreference.employee_id == employee_id).first()
+    if not pref:
+        pref = EmployeePreference(tenant_id=employee.company_id, employee_id=employee_id)
+        db.add(pref)
+        
+    update_data = payload.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(pref, field, value)
+        
+    db.commit()
+    db.refresh(pref)
+    return pref

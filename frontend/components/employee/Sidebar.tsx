@@ -2,14 +2,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Calendar, Clock, Home } from 'lucide-react';
+import { Calendar, Clock, Home, Hand, Settings } from 'lucide-react';
 import { UserMenu } from '@/components/layout/user-menu';
 import { NotificationBell } from '@/components/layout/notification-bell';
 
 const items = [
     { title: "My Schedule", href: "/employee/schedule", icon: Calendar },
+    { title: "Open Shifts", href: "/employee/open-shifts", icon: Hand },
     { title: "Availability", href: "/employee/availability", icon: Clock },
-    { title: "Time Off", href: "/employee/requests", icon: Home }, // Using Home icon for now
+    { title: "Time Off", href: "/employee/requests", icon: Home },
+    { title: "Settings", href: "/employee/settings", icon: Settings },
 ];
 
 export function EmployeeSidebar({ mobile }: { mobile?: boolean }) {
